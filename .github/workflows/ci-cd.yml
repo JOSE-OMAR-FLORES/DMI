@@ -1,10 +1,10 @@
-name: CI/CD Pipeline
+name: CI/CD Pipeline - GitHub Flow
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main ]
   pull_request:
-    branches: [ main, develop ]
+    branches: [ main ]
 
 jobs:
   build:
@@ -43,10 +43,21 @@ jobs:
   deploy-staging:
     needs: test
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/develop'
+    if: github.event_name == 'pull_request'
     steps:
     - uses: actions/checkout@v2
     
     - name: Deploy to Staging
-      run: echo "Deploying to staging environment..."
+      run: echo "Deploying PR to staging environment for testing..."
       # Aquí irían los comandos reales de despliegue a staging
+      
+  deploy-production:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+    - uses: actions/checkout@v2
+    
+    - name: Deploy to Production
+      run: echo "Deploying to production environment..."
+      # Aquí irían los comandos reales de despliegue a producción

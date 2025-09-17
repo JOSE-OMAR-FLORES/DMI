@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Gabriel | Frontend Developer</title>
+	<style>
+		body {
+			margin: 0;
+			font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
+			background: linear-gradient(135deg, #232526 0%, #414345 100%);
+			color: #fff;
+			min-height: 100vh;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+		}
+		.cv-container {
+			background: rgba(30, 30, 40, 0.95);
+			border-radius: 24px;
+			box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+			padding: 2.5rem 2rem;
+			max-width: 420px;
+			width: 100%;
+			position: relative;
+			overflow: hidden;
+			animation: fadeIn 1.2s ease;
+		}
+		@keyframes fadeIn {
+			from { opacity: 0; transform: translateY(40px); }
+			to { opacity: 1; transform: translateY(0); }
+		}
+		.avatar {
+			width: 90px;
+			height: 90px;
+			border-radius: 50%;
+			object-fit: cover;
+			border: 3px solid #00c3ff;
+			box-shadow: 0 0 0 6px rgba(0,195,255,0.15);
+			display: block;
+			margin: 0 auto 1.2rem auto;
+			transition: box-shadow 0.3s;
+		}
+		.avatar:hover {
+			box-shadow: 0 0 0 12px rgba(0,195,255,0.25);
+		}
+		h1 {
+			font-size: 2rem;
+			margin: 0 0 0.3rem 0;
+			text-align: center;
+			letter-spacing: 1px;
+		}
+		h2 {
+			font-size: 1.1rem;
+			font-weight: 400;
+			color: #00c3ff;
+			text-align: center;
+			margin: 0 0 1.2rem 0;
+		}
+		.about {
+			font-size: 1rem;
+			text-align: center;
+			margin-bottom: 1.5rem;
+			color: #e0e0e0;
+		}
+		.skills {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 0.5rem;
+			justify-content: center;
+			margin-bottom: 1.5rem;
+		}
+		.skill {
+			background: linear-gradient(90deg, #00c3ff 0%, #0072ff 100%);
+			color: #fff;
+			border-radius: 16px;
+			padding: 0.4rem 1rem;
+			font-size: 0.95rem;
+			font-weight: 500;
+			box-shadow: 0 2px 8px rgba(0,195,255,0.12);
+			transition: transform 0.2s, box-shadow 0.2s;
+			cursor: pointer;
+		}
+		.skill:hover {
+			transform: scale(1.08);
+			box-shadow: 0 4px 16px rgba(0,195,255,0.22);
+		}
+		.contact {
+			text-align: center;
+			margin-top: 1.2rem;
+		}
+		.contact a {
+			color: #00c3ff;
+			text-decoration: none;
+			font-weight: 500;
+			transition: color 0.2s;
+		}
+		.contact a:hover {
+			color: #fff;
+			text-shadow: 0 0 8px #00c3ff;
+		}
+		.glow {
+			position: absolute;
+			top: -60px;
+			right: -60px;
+			width: 160px;
+			height: 160px;
+			background: radial-gradient(circle, #00c3ff55 0%, transparent 70%);
+			z-index: 0;
+			pointer-events: none;
+			animation: pulseGlow 2.5s infinite alternate;
+		}
+		@keyframes pulseGlow {
+			from { opacity: 0.7; }
+			to { opacity: 1; }
+		}
+	</style>
+	<script>
+		// Efecto de animación en skills al hacer click
+		document.addEventListener('DOMContentLoaded', function() {
+			document.querySelectorAll('.skill').forEach(function(skill) {
+				skill.addEventListener('click', function() {
+					skill.style.transform = 'scale(1.18)';
+					setTimeout(function() {
+						skill.style.transform = '';
+					}, 250);
+				});
+			});
+		});
+	</script>
+</head>
+<body>
+	<div class="cv-container">
+		<div class="glow"></div>
+		<h1>Gabriel</h1>
+		<h2>Frontend Developer</h2>
+		<div class="about">
+			Apasionado por crear experiencias web elegantes y funcionales.<br>
+			Inspirado en la usabilidad y el diseño visual, enfocado en la estética y la interacción.
+		</div>
+		<div class="skills">
+			<div class="skill">HTML5</div>
+			<div class="skill">CSS3</div>
+			<div class="skill">JavaScript</div>
+			<div class="skill">React</div>
+			<div class="skill">UI/UX</div>
+			<div class="skill">Figma</div>
+			<div class="skill">SASS</div>
+		</div>
+		<div class="contact">
+			<a href="mailto:gabriel.dev@email.com">a3522110231@alumno.uttehuacan.edu.mx</a> | 
+			<a href="#" target="_blank">GitHub</a>
+		</div>
+	</div>
+</body>
+</html>

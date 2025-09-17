@@ -1,0 +1,16 @@
+# Omar
+
+¡Hola! Este es mi archivo para la práctica de GitHub Flow.
+
+## Información:
+- Nombre: Omar
+- Fecha: 16 de septiembre de 2025
+- Rama: feature/omar
+
+## Tareas completadas:
+✅ Clonar repositorio
+✅ Crear rama feature/omar
+✅ Agregar archivo con mi nombre
+⏳ Subir cambios
+⏳ Crear Pull Request
+⏳ Merge a main

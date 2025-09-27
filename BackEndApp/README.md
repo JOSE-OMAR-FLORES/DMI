@@ -5,7 +5,7 @@ API REST desarrollada con Laravel 12 para el proyecto DMI. Esta API proporciona 
 ## 🚀 Tecnologías Utilizadas
 
 - **Laravel 12.31.1** - Framework PHP
-- **SQLite** - Base de datos (desarrollo)
+- **MySQL 8.0+** - Base de datos
 - **PHP 8.2+** - Lenguaje de programación
 - **Composer** - Gestión de dependencias
 
@@ -76,10 +76,27 @@ Antes de ejecutar el proyecto, asegúrate de tener instalado:
 ## ⚙️ Configuración Adicional
 
 ### Base de Datos
-El proyecto está configurado para usar SQLite por defecto. El archivo de base de datos se encuentra en:
-```
-database/database.sqlite
-```
+El proyecto está configurado para usar MySQL. Asegúrate de:
+
+1. **Crear la base de datos en MySQL:**
+   ```sql
+   CREATE DATABASE dmi_backend;
+   ```
+
+2. **Configurar las variables de entorno en `.env`:**
+   ```env
+   DB_CONNECTION=mysql
+   DB_HOST=127.0.0.1
+   DB_PORT=3306
+   DB_DATABASE=dmi_backend
+   DB_USERNAME=root
+   DB_PASSWORD=
+   ```
+
+3. **Ejecutar las migraciones:**
+   ```bash
+   php artisan migrate
+   ```
 
 ### CORS (Para React Native)
 Si necesitas configurar CORS para la app móvil, edita el archivo `config/cors.php`:

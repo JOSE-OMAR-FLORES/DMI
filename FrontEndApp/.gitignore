@@ -32,6 +32,10 @@ yarn-error.*
 
 # local env files
 .env*.local
+.env
+
+# Variables de entorno sensibles
+*.env
 
 # typescript
 *.tsbuildinfo

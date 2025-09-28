@@ -1,20 +1,38 @@
 import React, { useState } from 'react';
 import { View, Text, KeyboardAvoidingView, Platform } from 'react-native';
+import { useDispatch, useSelector } from 'react-redux';
 import { CustomButton, CustomInput, LoadingSpinner } from '../components';
 import { useToast } from '../context/ToastContext';
 import { GLOBAL_STYLES } from '../constants/styles';
 import { validateLoginForm } from '../utils/validation';
+import { loginUser, clearError } from '../context/authSlice';
 
 const LoginScreen = ({ navigation }) => {
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState(''); // Cambiamos username por email
   const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   
+  const dispatch = useDispatch();
+  const { isLoading, error, isAuthenticated } = useSelector((state) => state.auth);
   const { showSuccess, showError, showWarning } = useToast();
 
+  // Navegación automática si ya está autenticado
+  React.useEffect(() => {
+    if (isAuthenticated) {
+      navigation.navigate('Dashboard');
+    }
+  }, [isAuthenticated, navigation]);
+
+  // Mostrar errores del Redux
+  React.useEffect(() => {
+    if (error) {
+      showError(error);
+      dispatch(clearError());
+    }
+  }, [error, showError, dispatch]);
+
   const handleLogin = async () => {
-    // Validación del formulario
-    const validation = validateLoginForm(username, password);
+    // Validación del formulario (adaptamos para usar email)
+    const validation = validateLoginForm(email, password);
     
     if (!validation.isValid) {
       const firstError = Object.values(validation.errors)[0];
@@ -22,24 +40,18 @@ const LoginScreen = ({ navigation }) => {
       return;
     }
 
-    setIsLoading(true);
-
     try {
-      // Simulamos una llamada a la API
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Usar Redux thunk para login con JWT
+      const resultAction = await dispatch(loginUser({ email, password }));
       
-      // Mostramos notificación de éxito
-      showSuccess('¡Bienvenido! Iniciando sesión...', 2000);
-      
-      // Navegamos al Dashboard después de un pequeño delay
-      setTimeout(() => {
-        setIsLoading(false);
-        navigation.navigate('Dashboard');
-      }, 1500);
+      if (loginUser.fulfilled.match(resultAction)) {
+        // Éxito - el useEffect se encargará de la navegación
+        showSuccess('¡Bienvenido! Iniciando sesión...', 2000);
+      }
+      // Los errores se manejan en el useEffect de arriba
       
     } catch (error) {
-      setIsLoading(false);
-      showError('Error al iniciar sesión. Inténtalo de nuevo.');
+      showError('Error de conexión. Verifica tu internet.');
     }
   };
 
@@ -57,10 +69,11 @@ const LoginScreen = ({ navigation }) => {
           <Text style={GLOBAL_STYLES.title}>Iniciar Sesión</Text>
           
           <CustomInput
-            placeholder="Usuario"
-            value={username}
-            onChangeText={setUsername}
+            placeholder="Email"
+            value={email}
+            onChangeText={setEmail}
             autoCapitalize="none"
+            keyboardType="email-address"
             editable={!isLoading}
           />
           
@@ -92,6 +105,21 @@ const LoginScreen = ({ navigation }) => {
               color: '#666',
               fontSize: 14,
               fontWeight: 'normal',
+            }}
+            disabled={isLoading}
+          />
+          
+          <CustomButton
+            title="Crear Nueva Cuenta"
+            onPress={() => navigation.navigate('Register')}
+            style={{ 
+              marginTop: 15, 
+              backgroundColor: '#4CAF50',
+            }}
+            textStyle={{ 
+              color: '#fff',
+              fontSize: 16,
+              fontWeight: 'bold',
             }}
             disabled={isLoading}
           />

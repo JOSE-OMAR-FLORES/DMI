@@ -4,6 +4,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { Provider } from 'react-redux';
 import { LoginScreen, DashboardScreen, RegisterScreen } from '../screens';
 import { ToastProvider } from '../context/ToastContext';
+import SecurityInitializer from '../components/SecurityInitializer';
 import store from '../context/store';
 import { COLORS } from '../constants/colors';
 
@@ -12,8 +13,9 @@ const Stack = createStackNavigator();
 const AppNavigator = () => {
   return (
     <Provider store={store}>
-      <ToastProvider>
-        <NavigationContainer>
+      <SecurityInitializer>
+        <ToastProvider>
+          <NavigationContainer>
         <Stack.Navigator
           initialRouteName="Login"
           screenOptions={{
@@ -51,8 +53,9 @@ const AppNavigator = () => {
             }}
           />
         </Stack.Navigator>
-      </NavigationContainer>
-      </ToastProvider>
+        </NavigationContainer>
+        </ToastProvider>
+      </SecurityInitializer>
     </Provider>
   );
 };

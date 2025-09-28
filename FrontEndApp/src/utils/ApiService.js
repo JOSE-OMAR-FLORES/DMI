@@ -1,6 +1,7 @@
 // ApiService.js - Servicio para comunicación con el backend JWT
 import axios from 'axios';
 import AuthStorage from './AuthStorage';
+import SecureAuthStorage from './SecureAuthStorage';
 
 // Configuración base de la API
 // Usar tu IP real para que el móvil pueda conectarse
@@ -55,7 +56,7 @@ class ApiService {
     );
   }
 
-  // Registro de usuario
+  // Registro de usuario con almacenamiento seguro
   async register(userData) {
     try {
       const response = await this.api.post('/jwt/register', {
@@ -66,8 +67,25 @@ class ApiService {
       });
       
       if (response.data.access_token) {
-        await AuthStorage.saveToken(response.data.access_token);
-        await AuthStorage.saveUser(response.data.user);
+        // 🔒 Almacenamiento seguro cifrado con fallback
+        const secureSuccess = await SecureAuthStorage.saveToken(response.data.access_token);
+        if (!secureSuccess) {
+          console.warn('⚠️ Fallback a almacenamiento básico para token');
+          await AuthStorage.saveToken(response.data.access_token);
+        }
+        
+        // 🔒 Guardar datos de usuario de forma segura
+        const userSuccess = await SecureAuthStorage.saveUser(response.data.user);
+        if (!userSuccess) {
+          console.warn('⚠️ Fallback a almacenamiento básico para usuario');
+          await AuthStorage.saveUser(response.data.user);
+        }
+        
+        // 🔒 Guardar datos de sesión cifrados
+        await SecureAuthStorage.saveSession({
+          deviceInfo: 'React Native App',
+          sessionId: `reg_${Date.now()}`
+        });
       }
       
       return {
@@ -84,7 +102,7 @@ class ApiService {
     }
   }
 
-  // Inicio de sesión
+  // Inicio de sesión con almacenamiento seguro
   async login(credentials) {
     try {
       const response = await this.api.post('/jwt/login', {
@@ -93,8 +111,25 @@ class ApiService {
       });
       
       if (response.data.access_token) {
-        await AuthStorage.saveToken(response.data.access_token);
-        await AuthStorage.saveUser(response.data.user);
+        // 🔒 Almacenamiento seguro cifrado con fallback
+        const secureSuccess = await SecureAuthStorage.saveToken(response.data.access_token);
+        if (!secureSuccess) {
+          console.warn('⚠️ Fallback a almacenamiento básico para token');
+          await AuthStorage.saveToken(response.data.access_token);
+        }
+        
+        // 🔒 Guardar datos de usuario de forma segura
+        const userSuccess = await SecureAuthStorage.saveUser(response.data.user);
+        if (!userSuccess) {
+          console.warn('⚠️ Fallback a almacenamiento básico para usuario');
+          await AuthStorage.saveUser(response.data.user);
+        }
+        
+        // 🔒 Guardar datos de sesión cifrados
+        await SecureAuthStorage.saveSession({
+          deviceInfo: 'React Native App',
+          sessionId: `login_${Date.now()}`
+        });
       }
       
       return {
@@ -135,20 +170,24 @@ class ApiService {
     }
   }
 
-  // Cerrar sesión
+  // Cerrar sesión con limpieza segura completa
   async logout() {
     try {
       await this.api.post('/jwt/logout');
       
-      // Limpiar almacenamiento local independientemente de la respuesta
+      // 🔒 Limpiar TODOS los almacenamientos (seguro y básico)
+      await SecureAuthStorage.removeAllSecureData();
       await AuthStorage.clearSession();
+      
+      console.log('🧹 Limpieza completa de datos seguros realizada');
       
       return {
         success: true,
         message: 'Sesión cerrada correctamente'
       };
     } catch (error) {
-      // Aún así limpiar el almacenamiento local
+      // 🔒 Aún así limpiar TODOS los almacenamientos
+      await SecureAuthStorage.removeAllSecureData();
       await AuthStorage.clearSession();
       
       return {

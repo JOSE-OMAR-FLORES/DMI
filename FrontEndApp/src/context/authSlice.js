@@ -1,7 +1,8 @@
-// authSlice.js - Redux slice para autenticación
+// authSlice.js - Redux slice para autenticación con almacenamiento seguro
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import ApiService from '../utils/ApiService';
 import AuthStorage from '../utils/AuthStorage';
+import SecureAuthStorage from '../utils/SecureAuthStorage';
 
 // Thunks asíncronos para las operaciones de autenticación
 export const loginUser = createAsyncThunk(
@@ -49,11 +50,56 @@ export const logoutUser = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       await ApiService.logout();
+      console.log('🔒 Logout con limpieza segura completado');
       return null;
     } catch (error) {
       return rejectWithValue({
         success: false,
         message: 'Error al cerrar sesión',
+        errors: {}
+      });
+    }
+  }
+);
+
+// 🔒 Nuevo: Verificar autenticación con almacenamiento seguro
+export const checkSecureAuthStatus = createAsyncThunk(
+  'auth/checkSecureAuthStatus',
+  async (_, { rejectWithValue }) => {
+    try {
+      console.log('🔍 Verificando estado de autenticación seguro...');
+      
+      // Verificar disponibilidad de almacenamiento seguro
+      const isSecureAvailable = await SecureAuthStorage.isSecureStorageAvailable();
+      console.log(`📱 Almacenamiento seguro disponible: ${isSecureAvailable}`);
+      
+      // Intentar migrar datos si existen en AsyncStorage
+      await SecureAuthStorage.migrateFromAsyncStorage();
+      
+      // Obtener token de almacenamiento seguro primero
+      let token = await SecureAuthStorage.getToken();
+      let user = await SecureAuthStorage.getUser();
+      
+      // Fallback a almacenamiento básico si es necesario
+      if (!token) {
+        console.log('⚠️ Verificando almacenamiento básico como fallback...');
+        token = await AuthStorage.getToken();
+        user = await AuthStorage.getUser();
+      }
+      
+      if (token && user) {
+        console.log('✅ Usuario autenticado encontrado:', user.email);
+        return { user, token };
+      } else {
+        console.log('❌ No se encontró sesión válida');
+        return null;
+      }
+      
+    } catch (error) {
+      console.error('❌ Error verificando autenticación:', error);
+      return rejectWithValue({
+        success: false,
+        message: 'Error verificando sesión',
         errors: {}
       });
     }
@@ -194,6 +240,33 @@ const authSlice = createSlice({
         state.isAuthenticated = false;
         state.user = null;
         state.token = null;
+      })
+      
+      // 🔒 Check Secure Auth Status
+      .addCase(checkSecureAuthStatus.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(checkSecureAuthStatus.fulfilled, (state, action) => {
+        state.isLoading = false;
+        if (action.payload) {
+          state.isAuthenticated = true;
+          state.user = action.payload.user;
+          state.token = action.payload.token;
+          state.message = 'Sesión segura restaurada';
+        } else {
+          state.isAuthenticated = false;
+          state.user = null;
+          state.token = null;
+        }
+        state.error = null;
+      })
+      .addCase(checkSecureAuthStatus.rejected, (state, action) => {
+        state.isLoading = false;
+        state.isAuthenticated = false;
+        state.user = null;
+        state.token = null;
+        state.error = action.payload?.message || 'Error verificando sesión segura';
       });
   },
 });

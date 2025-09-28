@@ -1,16 +1,23 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, ScrollView, Animated } from 'react-native';
+import { useDispatch, useSelector } from 'react-redux';
 import { CustomButton } from '../components';
 import { useToast } from '../context/ToastContext';
 import { GLOBAL_STYLES } from '../constants/styles';
 import { COLORS } from '../constants/colors';
+import { logoutUser, checkAuthStatus } from '../context/authSlice';
 
 const DashboardScreen = ({ navigation }) => {
-  const { showSuccess, showInfo, showWarning } = useToast();
+  const dispatch = useDispatch();
+  const { user, isAuthenticated, isLoading } = useSelector((state) => state.auth);
+  const { showSuccess, showInfo, showWarning, showError } = useToast();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
 
   useEffect(() => {
+    // Verificar autenticación al cargar
+    dispatch(checkAuthStatus());
+
     // Animación de entrada de la pantalla
     Animated.parallel([
       Animated.timing(fadeAnim, {
@@ -26,17 +33,35 @@ const DashboardScreen = ({ navigation }) => {
       }),
     ]).start();
 
-    // Mensaje de bienvenida
+    // Mensaje de bienvenida personalizado
     setTimeout(() => {
-      showSuccess('¡Bienvenido al Dashboard!', 3000);
+      const userName = user?.name || 'Usuario';
+      showSuccess(`¡Bienvenido ${userName}!`, 3000);
     }, 500);
-  }, []);
+  }, [dispatch]);
 
-  const handleLogout = () => {
-    showWarning('Cerrando sesión...', 2000);
-    setTimeout(() => {
+  // Redirigir si no está autenticado
+  useEffect(() => {
+    if (!isAuthenticated && !isLoading) {
       navigation.navigate('Login');
-    }, 1500);
+    }
+  }, [isAuthenticated, isLoading, navigation]);
+
+  const handleLogout = async () => {
+    showWarning('Cerrando sesión...', 2000);
+    
+    try {
+      await dispatch(logoutUser());
+      // La navegación se manejará automáticamente por el useEffect de arriba
+      setTimeout(() => {
+        navigation.navigate('Login');
+      }, 1500);
+    } catch (error) {
+      showError('Error al cerrar sesión, pero se limpiará localmente');
+      setTimeout(() => {
+        navigation.navigate('Login');
+      }, 1500);
+    }
   };
 
   const DashboardCard = ({ title, subtitle, onPress, delay = 0 }) => {

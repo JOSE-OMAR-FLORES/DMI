@@ -1,16 +1,19 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
-import { LoginScreen, DashboardScreen } from '../screens';
+import { Provider } from 'react-redux';
+import { LoginScreen, DashboardScreen, RegisterScreen } from '../screens';
 import { ToastProvider } from '../context/ToastContext';
+import store from '../context/store';
 import { COLORS } from '../constants/colors';
 
 const Stack = createStackNavigator();
 
 const AppNavigator = () => {
   return (
-    <ToastProvider>
-      <NavigationContainer>
+    <Provider store={store}>
+      <ToastProvider>
+        <NavigationContainer>
         <Stack.Navigator
           initialRouteName="Login"
           screenOptions={{
@@ -32,6 +35,14 @@ const AppNavigator = () => {
             }}
           />
           <Stack.Screen 
+            name="Register" 
+            component={RegisterScreen}
+            options={{
+              title: 'Crear Cuenta',
+              headerShown: false, // Ocultamos el header en registro para un look más limpio
+            }}
+          />
+          <Stack.Screen 
             name="Dashboard" 
             component={DashboardScreen}
             options={{
@@ -41,7 +52,8 @@ const AppNavigator = () => {
           />
         </Stack.Navigator>
       </NavigationContainer>
-    </ToastProvider>
+      </ToastProvider>
+    </Provider>
   );
 };
 

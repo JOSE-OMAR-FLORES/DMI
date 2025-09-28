@@ -1,6 +1,7 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Provider } from 'react-redux';
 import { LoginScreen, DashboardScreen, RegisterScreen } from '../screens';
 import { ToastProvider } from '../context/ToastContext';
@@ -12,10 +13,11 @@ const Stack = createStackNavigator();
 
 const AppNavigator = () => {
   return (
-    <Provider store={store}>
-      <SecurityInitializer>
-        <ToastProvider>
-          <NavigationContainer>
+    <SafeAreaProvider>
+      <Provider store={store}>
+        <SecurityInitializer>
+          <ToastProvider>
+            <NavigationContainer>
         <Stack.Navigator
           initialRouteName="Login"
           screenOptions={{
@@ -48,8 +50,7 @@ const AppNavigator = () => {
             name="Dashboard" 
             component={DashboardScreen}
             options={{
-              title: 'Panel Principal',
-              headerLeft: null, // Evitamos que se pueda regresar al login
+              headerShown: false, // Ocultamos el header para un look más limpio y moderno
             }}
           />
         </Stack.Navigator>
@@ -57,6 +58,7 @@ const AppNavigator = () => {
         </ToastProvider>
       </SecurityInitializer>
     </Provider>
+    </SafeAreaProvider>
   );
 };
 

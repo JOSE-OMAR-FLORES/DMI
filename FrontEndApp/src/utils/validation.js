@@ -9,12 +9,14 @@ export const validatePassword = (password) => {
   return password && password.length >= 6;
 };
 
-// Función para validar formulario de login (sin validación estricta de email)
-export const validateLoginForm = (username, password) => {
+// Función para validar formulario de login (adaptada para email)
+export const validateLoginForm = (emailOrUsername, password) => {
   const errors = {};
   
-  if (!username || username.trim() === '') {
-    errors.username = 'El nombre de usuario es requerido';
+  if (!emailOrUsername || emailOrUsername.trim() === '') {
+    errors.username = 'El email es requerido';
+  } else if (emailOrUsername.includes('@') && !validateEmail(emailOrUsername)) {
+    errors.username = 'El formato del email no es válido';
   }
   
   if (!password) {

@@ -29,8 +29,8 @@ const DashboardScreen = ({ navigation }) => {
   const rotateAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // Verificar autenticación al cargar
-    dispatch(checkAuthStatus());
+    // La verificación de auth ya se hace en SecurityInitializer
+    // dispatch(checkAuthStatus()); // COMENTADO - evita conflictos
 
     // Animaciones de entrada espectaculares
     Animated.sequence([

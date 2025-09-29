@@ -29,10 +29,19 @@ class ApiService {
     // Interceptor para agregar token automáticamente
     this.api.interceptors.request.use(
       async (config) => {
-        const token = await AuthStorage.getToken();
+        // 🔒 Buscar token en almacenamiento seguro primero, luego básico
+        let token = await SecureAuthStorage.getToken();
+        if (!token) {
+          token = await AuthStorage.getToken();
+        }
+        
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
+          console.log('🔑 Token agregado al header Authorization');
+        } else {
+          console.log('⚠️ No se encontró token para la petición');
         }
+        
         console.log('Request:', config.method?.toUpperCase(), config.url);
         return config;
       },
@@ -60,8 +69,11 @@ class ApiService {
         // Si el token es inválido (401), cerrar sesión automáticamente
         if (error.response?.status === 401) {
           console.log('Token inválido, cerrando sesión...');
+          // 🔒 Limpiar AMBOS almacenamientos
+          await SecureAuthStorage.removeAllSecureData();
           await AuthStorage.clearSession();
-          // Aquí podrías disparar un evento o usar una función callback para redirigir al login
+          console.log('Token eliminado correctamente');
+          console.log('Sesión limpiada completamente');
         }
         
         return Promise.reject(error);

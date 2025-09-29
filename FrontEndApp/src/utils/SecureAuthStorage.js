@@ -1,5 +1,6 @@
 // SecureAuthStorage.js - Almacenamiento seguro y cifrado para datos sensibles
 import * as SecureStore from 'expo-secure-store';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const TOKEN_KEY = 'jwt_token_secure';
 const USER_KEY = 'user_data_secure';
@@ -20,11 +21,9 @@ class SecureAuthStorage {
    */
   static secureOptions = {
     // Requerir autenticación del usuario (biometría/PIN)
-    requireAuthentication: true,
+    requireAuthentication: false, // Cambiar a false para evitar problemas de compatibilidad
     // Prompt que se muestra al usuario
     authenticationPrompt: 'Autenticación requerida para acceder a datos seguros',
-    // Tipo de autenticación (biometría preferida)
-    authenticationType: SecureStore.AUTHENTICATION_TYPE.BIOMETRIC_OR_DEVICE_PASSCODE,
   };
 
   /**

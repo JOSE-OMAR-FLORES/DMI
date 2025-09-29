@@ -2,21 +2,28 @@
 import axios from 'axios';
 import AuthStorage from './AuthStorage';
 import SecureAuthStorage from './SecureAuthStorage';
+import { API_BASE_URL, API_TIMEOUT } from '@env';
 
 // Configuración base de la API
-// Usar tu IP real para que el móvil pueda conectarse
-const API_BASE_URL = 'http://192.168.1.74:8000/api/v1';
+// Usar variables de entorno para la configuración
+const BASE_URL = API_BASE_URL || 'http://127.0.0.1:8000/api';
+const TIMEOUT = 15000; // Usar número fijo en lugar de variable de entorno
 
 class ApiService {
   constructor() {
+    console.log('🔧 ApiService Constructor:');
+    console.log('  - BASE_URL:', BASE_URL);
+    console.log('  - TIMEOUT:', TIMEOUT, 'type:', typeof TIMEOUT);
+    console.log('  - API_BASE_URL from env:', API_BASE_URL);
+    
     // Crear instancia de axios
     this.api = axios.create({
-      baseURL: API_BASE_URL,
+      baseURL: BASE_URL,
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       },
-      timeout: 10000, // 10 segundos de timeout
+      timeout: 15000, // Número fijo para evitar problemas de tipo
     });
 
     // Interceptor para agregar token automáticamente
@@ -38,11 +45,17 @@ class ApiService {
     // Interceptor para manejar respuestas y errores
     this.api.interceptors.response.use(
       (response) => {
-        console.log('Response:', response.status, response.config.url);
+        console.log('✅ Response SUCCESS:', response.status, response.config.url);
         return response;
       },
       async (error) => {
-        console.error('Response error:', error.response?.status, error.response?.data);
+        console.error('❌ Response ERROR Details:');
+        console.error('  - Message:', error.message);
+        console.error('  - Code:', error.code);
+        console.error('  - URL:', error.config?.url);
+        console.error('  - Status:', error.response?.status);
+        console.error('  - Data:', error.response?.data);
+        console.error('  - Network Error:', !error.response);
         
         // Si el token es inválido (401), cerrar sesión automáticamente
         if (error.response?.status === 401) {
@@ -59,6 +72,10 @@ class ApiService {
   // Registro de usuario con almacenamiento seguro
   async register(userData) {
     try {
+      console.log('🚀 Iniciando registro...');
+      console.log('📍 Base URL:', this.api.defaults.baseURL);
+      console.log('📤 Datos a enviar:', userData);
+      
       const response = await this.api.post('/jwt/register', {
         name: userData.name,
         email: userData.email,

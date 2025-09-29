@@ -23,11 +23,13 @@ class WeatherService {
       console.log(`🌤️ Obteniendo clima para: ${cityName}`);
       
       // Verificar si hay API Key configurada
-      if (API_CONFIGS.OPENWEATHER.API_KEY === 'TU_API_KEY_AQUI') {
+      if (!API_CONFIGS.OPENWEATHER.API_KEY || 
+          API_CONFIGS.OPENWEATHER.API_KEY === 'API_KEY_NOT_CONFIGURED' ||
+          API_CONFIGS.OPENWEATHER.API_KEY === 'tu_api_key_aqui') {
         return {
           success: false,
           error: {
-            message: 'API Key no configurada. Revisa src/utils/config.js',
+            message: 'API Key no configurada. Revisa tu archivo .env',
             type: 'config',
             originalError: 'Missing API Key',
           },

@@ -6,6 +6,8 @@ import {
   API_TIMEOUT 
 } from '@env';
 
+// Variables de entorno cargadas correctamente
+
 export const API_CONFIGS = {
   // OpenWeather API Configuration
   OPENWEATHER: {

@@ -85,7 +85,7 @@ const FavoriteCard = ({ favorite, onPress, onEdit, onDelete }) => {
       activeOpacity={0.8}
     >
       <LinearGradient
-        colors={['rgba(255,255,255,0.95)', 'rgba(255,255,255,0.85)']}
+        colors={COLORS.gradientCard} // ['#2C2C2C', '#1E1E1E']
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.gradient}
@@ -170,10 +170,12 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     overflow: 'hidden',
     elevation: 5,
-    shadowColor: '#000',
+    shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
   gradient: {
     borderRadius: 20,
@@ -202,12 +204,12 @@ const styles = StyleSheet.create({
   nickname: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: COLORS.white,
+    color: COLORS.textPrimary, // #FFFFFF
     marginBottom: 4,
   },
   cityName: {
     fontSize: 14,
-    color: COLORS.white,
+    color: COLORS.textSecondary, // #B3B3B3
     opacity: 0.9,
   },
   actions: {
@@ -218,9 +220,11 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: COLORS.backgroundElevated,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
   actionIcon: {
     fontSize: 18,
@@ -237,17 +241,17 @@ const styles = StyleSheet.create({
   temperature: {
     fontSize: 36,
     fontWeight: 'bold',
-    color: COLORS.white,
+    color: COLORS.primary, // #00BFFF
   },
   condition: {
     fontSize: 18,
-    color: COLORS.white,
+    color: COLORS.textPrimary,
     opacity: 0.9,
     textTransform: 'capitalize',
   },
   notes: {
     fontSize: 14,
-    color: COLORS.white,
+    color: COLORS.textSecondary,
     opacity: 0.8,
     fontStyle: 'italic',
     marginBottom: 12,
@@ -257,17 +261,17 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.2)',
+    borderTopColor: COLORS.border,
     paddingTop: 12,
   },
   lastUpdate: {
     fontSize: 12,
-    color: COLORS.white,
+    color: COLORS.textSecondary,
     opacity: 0.8,
   },
   tapHint: {
     fontSize: 11,
-    color: COLORS.white,
+    color: COLORS.textTertiary,
     opacity: 0.6,
   },
 });

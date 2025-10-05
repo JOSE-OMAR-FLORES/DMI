@@ -55,10 +55,22 @@ const FavoriteDetailScreen = ({ route, navigation }) => {
       setIsUpdating(true);
       setUpdateError('');
 
-      console.log(`🌤️ Actualizando clima de ${favorite.city}...`);
+      const displayName = favorite.nickname || favorite.city;
+      console.log(`🌤️ Actualizando clima de ${displayName}...`);
 
-      // 1. Consultar clima actual (WeatherService ya es una instancia)
-      const result = await WeatherService.getCurrentWeather(favorite.city);
+      // 1. Consultar clima actual usando coordenadas si están disponibles
+      let result;
+      if (favorite.coordinates?.lat && favorite.coordinates?.lon) {
+        console.log(`📍 Usando coordenadas: ${favorite.coordinates.lat}, ${favorite.coordinates.lon}`);
+        result = await WeatherService.getCurrentWeatherByCoords(
+          favorite.coordinates.lat,
+          favorite.coordinates.lon,
+          favorite.city
+        );
+      } else {
+        console.log(`📍 Usando nombre de ciudad: ${favorite.city}`);
+        result = await WeatherService.getCurrentWeather(favorite.city);
+      }
 
       if (!result.success) {
         throw new Error(result.error?.message || 'Error obteniendo clima');
@@ -85,7 +97,7 @@ const FavoriteDetailScreen = ({ route, navigation }) => {
         }
       );
 
-      console.log(`✅ Clima de ${favorite.city} actualizado`);
+      console.log(`✅ Clima de ${displayName} actualizado`);
 
     } catch (error) {
       console.error('❌ Error actualizando clima:', error);
@@ -135,312 +147,405 @@ const FavoriteDetailScreen = ({ route, navigation }) => {
   };
 
   return (
-    <SafeAreaView style={GLOBAL_STYLES.container}>
-      <LinearGradient
-        colors={[COLORS.primary, COLORS.primaryDark]}
-        style={styles.gradient}
-      >
-        <ScrollView 
-          style={styles.scrollView}
-          showsVerticalScrollIndicator={false}
+    <SafeAreaView style={styles.container} edges={['top']}>
+      {/* Header con botón de regresar */}
+      <View style={styles.header}>
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.7}
         >
-          {/* Header */}
-          <View style={styles.header}>
-            <View>
-              <Text style={styles.nickname}>
-                {favorite.nickname || favorite.city}
-              </Text>
-              <Text style={styles.city}>
-                {favorite.city}, {favorite.country}
-              </Text>
+          <Text style={styles.backIcon}>←</Text>
+        </TouchableOpacity>
+        
+        <View style={styles.headerCenter}>
+          <Text style={styles.headerCity}>{favorite.nickname || favorite.city}</Text>
+          <Text style={styles.headerCountry}>{favorite.country}</Text>
+        </View>
+        
+        <TouchableOpacity 
+          style={styles.editButton}
+          onPress={handleEdit}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.editIcon}>✎</Text>
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView 
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Clima principal con gradiente */}
+        <LinearGradient
+          colors={['#667eea', '#764ba2']}
+          style={styles.mainWeatherCard}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        >
+          {isUpdating && !weatherData ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#FFFFFF" />
+              <Text style={styles.loadingText}>Actualizando clima...</Text>
             </View>
-          </View>
+          ) : (
+            <>
+              {weatherData.icon && (
+                <Image
+                  source={{
+                    uri: `https://openweathermap.org/img/wn/${weatherData.icon}@4x.png`,
+                  }}
+                  style={styles.weatherIcon}
+                />
+              )}
 
-          {/* Clima Principal */}
-          <View style={styles.weatherMain}>
-            {isUpdating && !weatherData ? (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color={COLORS.white} />
-                <Text style={styles.loadingText}>Actualizando clima...</Text>
-              </View>
-            ) : (
-              <>
-                {weatherData.icon && (
-                  <Image
-                    source={{
-                      uri: `https://openweathermap.org/img/wn/${weatherData.icon}@4x.png`,
-                    }}
-                    style={styles.weatherIcon}
-                  />
-                )}
-
-                <Text style={styles.temperature}>
-                  {weatherData.temperature}°C
-                </Text>
-                
-                <Text style={styles.condition}>
-                  {weatherData.condition || weatherData.description}
-                </Text>
-
-                {isUpdating && (
-                  <View style={styles.updatingIndicator}>
-                    <ActivityIndicator size="small" color={COLORS.white} />
-                    <Text style={styles.updatingText}>Actualizando...</Text>
-                  </View>
-                )}
-              </>
-            )}
-          </View>
-
-          {/* Detalles del clima */}
-          {weatherData && !isUpdating && (
-            <View style={styles.detailsContainer}>
-              <Text style={styles.detailsTitle}>📊 Detalles</Text>
+              <Text style={styles.temperature}>
+                {Math.round(weatherData.temperature)}°
+              </Text>
               
-              <View style={styles.detailsGrid}>
-                <View style={styles.detailItem}>
-                  <Text style={styles.detailIcon}>🌡️</Text>
-                  <Text style={styles.detailLabel}>Sensación térmica</Text>
-                  <Text style={styles.detailValue}>{weatherData.feelsLike}°C</Text>
-                </View>
+              <Text style={styles.condition}>
+                {weatherData.condition || weatherData.description}
+              </Text>
 
-                <View style={styles.detailItem}>
-                  <Text style={styles.detailIcon}>💧</Text>
-                  <Text style={styles.detailLabel}>Humedad</Text>
-                  <Text style={styles.detailValue}>{weatherData.humidity}%</Text>
-                </View>
+              <View style={styles.tempRange}>
+                <Text style={styles.feelsLike}>
+                  Sensación {Math.round(weatherData.feelsLike)}°
+                </Text>
+              </View>
 
-                <View style={styles.detailItem}>
-                  <Text style={styles.detailIcon}>💨</Text>
-                  <Text style={styles.detailLabel}>Viento</Text>
-                  <Text style={styles.detailValue}>{weatherData.windSpeed} km/h</Text>
+              {isUpdating && (
+                <View style={styles.updatingBadge}>
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                  <Text style={styles.updatingText}>Actualizando...</Text>
                 </View>
+              )}
+            </>
+          )}
+        </LinearGradient>
 
-                <View style={styles.detailItem}>
-                  <Text style={styles.detailIcon}>👁️</Text>
-                  <Text style={styles.detailLabel}>Visibilidad</Text>
-                  <Text style={styles.detailValue}>{weatherData.visibility} km</Text>
-                </View>
+        {/* Detalles en cards */}
+        {weatherData && !isUpdating && (
+          <View style={styles.detailsContainer}>
+            <View style={styles.detailRow}>
+              <View style={styles.detailCard}>
+                <Text style={styles.detailIcon}>💧</Text>
+                <Text style={styles.detailValue}>{weatherData.humidity}%</Text>
+                <Text style={styles.detailLabel}>Humedad</Text>
+              </View>
+
+              <View style={styles.detailCard}>
+                <Text style={styles.detailIcon}>�</Text>
+                <Text style={styles.detailValue}>{Math.round(weatherData.windSpeed)}</Text>
+                <Text style={styles.detailLabel}>km/h</Text>
               </View>
             </View>
-          )}
 
-          {/* Notas personales */}
-          {favorite.notes && (
-            <View style={styles.notesContainer}>
-              <Text style={styles.notesTitle}>📝 Mis Notas</Text>
-              <Text style={styles.notesText}>{favorite.notes}</Text>
+            <View style={styles.detailRow}>
+              <View style={styles.detailCard}>
+                <Text style={styles.detailIcon}>�️</Text>
+                <Text style={styles.detailValue}>{Math.round(weatherData.visibility / 1000)}</Text>
+                <Text style={styles.detailLabel}>km visibilidad</Text>
+              </View>
+
+              <View style={styles.detailCard}>
+                <Text style={styles.detailIcon}>🌡️</Text>
+                <Text style={styles.detailValue}>{Math.round(weatherData.feelsLike)}°</Text>
+                <Text style={styles.detailLabel}>Se siente</Text>
+              </View>
             </View>
-          )}
-
-          {/* Error de actualización */}
-          {updateError && (
-            <View style={styles.errorContainer}>
-              <Text style={styles.errorText}>⚠️ {updateError}</Text>
-              <TouchableOpacity onPress={updateWeather}>
-                <Text style={styles.retryText}>Reintentar</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-
-          {/* Info de actualización */}
-          <View style={styles.updateInfo}>
-            <Text style={styles.updateText}>
-              {isUpdating ? '🔄 Actualizando...' : `🟢 ${getTimeSinceUpdate()}`}
-            </Text>
           </View>
+        )}
 
-          {/* Botones de acción */}
-          <View style={styles.actionsContainer}>
-            <CustomButton
-              title="✏️ Editar información personal"
-              onPress={handleEdit}
-              variant="secondary"
-              style={styles.actionButton}
-            />
+        {/* Notas personales */}
+        {favorite.notes && (
+          <View style={styles.notesCard}>
+            <Text style={styles.notesTitle}>📝 Mis notas</Text>
+            <Text style={styles.notesText}>{favorite.notes}</Text>
+          </View>
+        )}
 
-            <TouchableOpacity
-              style={styles.deleteButton}
-              onPress={handleDelete}
-            >
-              <Text style={styles.deleteButtonText}>🗑️ Eliminar favorito</Text>
+        {/* Error de actualización */}
+        {updateError && (
+          <View style={styles.errorCard}>
+            <Text style={styles.errorText}>⚠️ {updateError}</Text>
+            <TouchableOpacity onPress={updateWeather} style={styles.retryButton}>
+              <Text style={styles.retryText}>Reintentar</Text>
             </TouchableOpacity>
           </View>
+        )}
 
-          <View style={{ height: 40 }} />
-        </ScrollView>
-      </LinearGradient>
+        {/* Info de actualización */}
+        <View style={styles.updateInfo}>
+          <Text style={styles.updateText}>
+            {isUpdating ? '🔄 Actualizando...' : `Actualizado ${getTimeSinceUpdate()}`}
+          </Text>
+        </View>
+
+        {/* Botón eliminar */}
+        <TouchableOpacity
+          style={styles.deleteButton}
+          onPress={handleDelete}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.deleteIcon}>🗑️</Text>
+          <Text style={styles.deleteText}>Eliminar de favoritos</Text>
+        </TouchableOpacity>
+
+        <View style={{ height: 40 }} />
+      </ScrollView>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  gradient: {
+  container: {
     flex: 1,
+    backgroundColor: COLORS.background,
   },
+  
+  // Header - Tema Oscuro
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  backButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: COLORS.backgroundElevated,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  backIcon: {
+    fontSize: 24,
+    color: COLORS.textPrimary,
+  },
+  headerCenter: {
+    flex: 1,
+    alignItems: 'center',
+    paddingHorizontal: 16,
+  },
+  headerCity: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+  },
+  headerCountry: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    marginTop: 2,
+  },
+  editButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: COLORS.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  editIcon: {
+    fontSize: 20,
+    color: COLORS.textPrimary,
+  },
+  
+  // Scroll
   scrollView: {
     flex: 1,
   },
-  header: {
+  scrollContent: {
     padding: 20,
-    paddingBottom: 10,
   },
-  nickname: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: COLORS.white,
-    marginBottom: 4,
-  },
-  city: {
-    fontSize: 16,
-    color: COLORS.white,
-    opacity: 0.9,
-  },
-  weatherMain: {
+  
+  // Main Weather Card - Tema Oscuro
+  mainWeatherCard: {
+    borderRadius: 30,
+    padding: 40,
     alignItems: 'center',
-    padding: 20,
-    paddingTop: 10,
+    marginBottom: 20,
+    elevation: 8,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
   loadingContainer: {
     padding: 40,
     alignItems: 'center',
   },
   loadingText: {
-    color: COLORS.white,
-    marginTop: 12,
+    color: COLORS.textPrimary,
+    marginTop: 16,
     fontSize: 16,
+    fontWeight: '500',
   },
   weatherIcon: {
-    width: 150,
-    height: 150,
+    width: 140,
+    height: 140,
+    marginBottom: 10,
   },
   temperature: {
-    fontSize: 72,
-    fontWeight: 'bold',
-    color: COLORS.white,
-    marginTop: 10,
+    fontSize: 80,
+    fontWeight: '800',
+    color: COLORS.primary,
+    letterSpacing: -2,
   },
   condition: {
     fontSize: 24,
-    color: COLORS.white,
+    fontWeight: '600',
+    color: COLORS.textPrimary,
     textTransform: 'capitalize',
     marginTop: 8,
+    opacity: 0.95,
   },
-  updatingIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  tempRange: {
     marginTop: 12,
   },
-  updatingText: {
-    color: COLORS.white,
-    fontSize: 14,
-    opacity: 0.8,
+  feelsLike: {
+    fontSize: 16,
+    color: COLORS.textSecondary,
+    opacity: 0.9,
   },
-  detailsContainer: {
-    margin: 20,
-    marginTop: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    borderRadius: 16,
-    padding: 20,
-  },
-  detailsTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: COLORS.white,
-    marginBottom: 16,
-  },
-  detailsGrid: {
+  updatingBadge: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  detailItem: {
-    width: '48%',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 12,
-    padding: 16,
     alignItems: 'center',
+    backgroundColor: 'rgba(0, 191, 255, 0.2)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginTop: 16,
+  },
+  updatingText: {
+    color: COLORS.primary,
+    fontSize: 14,
+    fontWeight: '500',
+    marginLeft: 8,
+  },
+  
+  // Details Container - Tema Oscuro
+  detailsContainer: {
+    marginBottom: 20,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  detailCard: {
+    flex: 1,
+    backgroundColor: COLORS.backgroundCard,
+    borderRadius: 20,
+    padding: 20,
+    alignItems: 'center',
+    marginHorizontal: 6,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
   detailIcon: {
     fontSize: 32,
     marginBottom: 8,
   },
-  detailLabel: {
-    fontSize: 12,
-    color: COLORS.white,
-    opacity: 0.8,
+  detailValue: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
     marginBottom: 4,
   },
-  detailValue: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: COLORS.white,
+  detailLabel: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    fontWeight: '500',
   },
-  notesContainer: {
-    margin: 20,
-    marginTop: 0,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    borderRadius: 16,
+  
+  // Notes Card - Tema Oscuro
+  notesCard: {
+    backgroundColor: 'rgba(255, 165, 0, 0.15)',
+    borderRadius: 20,
     padding: 20,
+    marginBottom: 20,
+    borderLeftWidth: 4,
+    borderLeftColor: COLORS.accent,
   },
   notesTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: COLORS.white,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
     marginBottom: 12,
   },
   notesText: {
     fontSize: 16,
-    color: COLORS.white,
+    color: COLORS.textSecondary,
     lineHeight: 24,
   },
-  errorContainer: {
-    margin: 20,
-    backgroundColor: 'rgba(255, 0, 0, 0.2)',
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
+  
+  // Error Card - Tema Oscuro
+  errorCard: {
+    backgroundColor: 'rgba(255, 59, 48, 0.15)',
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 20,
+    borderLeftWidth: 4,
+    borderLeftColor: COLORS.error,
   },
   errorText: {
-    color: COLORS.white,
-    fontSize: 14,
-    marginBottom: 8,
-  },
-  retryText: {
-    color: COLORS.white,
-    fontSize: 14,
-    fontWeight: 'bold',
-    textDecorationLine: 'underline',
-  },
-  updateInfo: {
-    alignItems: 'center',
-    padding: 16,
-  },
-  updateText: {
-    color: COLORS.white,
-    fontSize: 14,
-    opacity: 0.8,
-  },
-  actionsContainer: {
-    padding: 20,
-    paddingTop: 0,
-  },
-  actionButton: {
+    color: COLORS.error,
+    fontSize: 15,
+    fontWeight: '600',
     marginBottom: 12,
   },
-  deleteButton: {
-    backgroundColor: 'rgba(255, 0, 0, 0.3)',
+  retryButton: {
+    backgroundColor: COLORS.error,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
     borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    alignSelf: 'flex-start',
   },
-  deleteButtonText: {
-    color: COLORS.white,
+  retryText: {
+    color: COLORS.textPrimary,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  
+  // Update Info - Tema Oscuro
+  updateInfo: {
+    alignItems: 'center',
+    paddingVertical: 12,
+    marginBottom: 8,
+  },
+  updateText: {
+    color: COLORS.textSecondary,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  
+  // Delete Button - Tema Oscuro
+  deleteButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 59, 48, 0.15)',
+    borderRadius: 16,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: COLORS.error,
+  },
+  deleteIcon: {
+    fontSize: 20,
+    marginRight: 8,
+  },
+  deleteText: {
+    color: COLORS.error,
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '600',
   },
 });
 

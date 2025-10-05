@@ -6,7 +6,7 @@ export default function App() {
   return (
     <>
       <AppNavigator />
-      <StatusBar style="light" />
+      <StatusBar style="light" backgroundColor="#121212" />
     </>
   );
 }

@@ -65,56 +65,28 @@ const AppNavigator = () => {
             name="Favorites" 
             component={FavoritesScreen}
             options={{
-              title: 'Mis Favoritos',
-              headerStyle: {
-                backgroundColor: COLORS.primary,
-              },
-              headerTintColor: COLORS.white,
-              headerTitleStyle: {
-                fontWeight: 'bold',
-              },
+              headerShown: false, // Header custom en la pantalla
             }}
           />
           <Stack.Screen 
             name="AddFavorite" 
             component={AddFavoriteScreen}
             options={{
-              title: 'Agregar Ciudad',
-              headerStyle: {
-                backgroundColor: COLORS.primary,
-              },
-              headerTintColor: COLORS.white,
-              headerTitleStyle: {
-                fontWeight: 'bold',
-              },
+              headerShown: false, // Header custom en la pantalla
             }}
           />
           <Stack.Screen 
             name="FavoriteDetail" 
             component={FavoriteDetailScreen}
             options={{
-              title: 'Detalle',
-              headerStyle: {
-                backgroundColor: COLORS.primary,
-              },
-              headerTintColor: COLORS.white,
-              headerTitleStyle: {
-                fontWeight: 'bold',
-              },
+              headerShown: false, // Header custom en la pantalla
             }}
           />
           <Stack.Screen 
             name="EditFavorite" 
             component={EditFavoriteScreen}
             options={{
-              title: 'Editar Favorito',
-              headerStyle: {
-                backgroundColor: COLORS.primary,
-              },
-              headerTintColor: COLORS.white,
-              headerTitleStyle: {
-                fontWeight: 'bold',
-              },
+              headerShown: false, // Header custom en la pantalla
             }}
           />
         </Stack.Navigator>

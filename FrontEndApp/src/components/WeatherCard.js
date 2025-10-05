@@ -452,108 +452,39 @@ const WeatherCard = ({ cityName = 'Tehuacán', style }) => {
     );
   };
 
-  // Función para obtener gradiente según el clima
+  // Función para obtener gradiente según el clima - TEMA OSCURO
   const getWeatherGradient = () => {
-    if (!weatherData) return [COLORS.skyBlue, COLORS.white];
-    
-    const condition = weatherData.weather?.[0]?.main.toLowerCase();
-    const isDay = new Date().getHours() >= 6 && new Date().getHours() < 18;
+    if (!weatherData?.weather?.[0]?.main) {
+      return COLORS.gradientPrimary; // ['#00BFFF', '#1E90FF']
+    }
+
+    const condition = weatherData.weather[0].main.toLowerCase();
     
     switch (condition) {
       case 'clear':
-        return isDay 
-          ? [COLORS.sunYellow, '#FFE135', COLORS.skyBlue] 
-          : ['#1e3c72', '#2a5298', '#000428'];
+        return COLORS.gradientSunset; // ['#FF6347', '#FFA500', '#FFD700']
+      case 'clouds':
+        return COLORS.gradientDark; // ['#1a1a1a', '#121212']
       case 'rain':
       case 'drizzle':
-        return ['#4b79a1', '#283e51', '#0f0f23'];
+        return COLORS.gradientRain; // ['#4682B4', '#00BFFF', '#1E90FF']
       case 'thunderstorm':
-        return ['#2c1810', '#8B4513', '#000000'];
+        return ['#1E1E1E', '#2C2C2C', '#1a1a1a'];
       case 'snow':
-        return ['#E0E0E0', '#F5F5F5', '#87CEEB'];
-      case 'clouds':
-        return ['#bdc3c7', '#2c3e50', '#4b79a1'];
-      case 'mist':
-      case 'fog':
-        return ['#f7f8f8', '#acbb78', '#bdc3c7'];
+        return COLORS.gradientCool; // ['#40E0D0', '#00BFFF', '#1E90FF']
       default:
-        return [COLORS.skyBlue, COLORS.white];
+        return COLORS.gradientPrimary; // ['#00BFFF', '#1E90FF']
     }
   };
 
-  // Función para obtener colores de texto según el clima
+  // Función para obtener colores de texto - TEMA OSCURO
   const getTextColors = () => {
-    if (!weatherData) return {
-      primary: COLORS.darkGray,
-      secondary: COLORS.gray,
-      accent: COLORS.white
+    return {
+      primary: COLORS.textPrimary, // #FFFFFF
+      secondary: COLORS.textSecondary, // #B3B3B3
+      accent: COLORS.primary, // #00BFFF
+      shadow: COLORS.shadow // rgba(0, 0, 0, 0.5)
     };
-    
-    const condition = weatherData.weather?.[0]?.main.toLowerCase();
-    const isDay = new Date().getHours() >= 6 && new Date().getHours() < 18;
-    
-    switch (condition) {
-      case 'clear':
-        if (isDay) {
-          // Fondo amarillo/azul claro - texto oscuro
-          return {
-            primary: '#2c3e50',      // Azul oscuro para títulos
-            secondary: '#34495e',    // Gris oscuro para subtítulos  
-            accent: '#2c3e50',       // Azul oscuro para detalles
-            shadow: 'rgba(255, 255, 255, 0.8)'
-          };
-        } else {
-          // Fondo nocturno oscuro - texto claro
-          return {
-            primary: COLORS.white,
-            secondary: 'rgba(255, 255, 255, 0.9)',
-            accent: COLORS.white,
-            shadow: 'rgba(0, 0, 0, 0.5)'
-          };
-        }
-      case 'rain':
-      case 'drizzle':
-      case 'thunderstorm':
-        // Fondos oscuros - texto claro
-        return {
-          primary: COLORS.white,
-          secondary: 'rgba(255, 255, 255, 0.9)',
-          accent: COLORS.white,
-          shadow: 'rgba(0, 0, 0, 0.7)'
-        };
-      case 'snow':
-        // Fondo claro - texto oscuro
-        return {
-          primary: '#2c3e50',
-          secondary: '#34495e', 
-          accent: '#2c3e50',
-          shadow: 'rgba(255, 255, 255, 0.8)'
-        };
-      case 'clouds':
-        // Fondo gris - texto oscuro
-        return {
-          primary: '#2c3e50',
-          secondary: '#34495e',
-          accent: '#2c3e50', 
-          shadow: 'rgba(255, 255, 255, 0.6)'
-        };
-      case 'mist':
-      case 'fog':
-        // Fondo claro - texto oscuro
-        return {
-          primary: '#2c3e50',
-          secondary: '#34495e',
-          accent: '#2c3e50',
-          shadow: 'rgba(255, 255, 255, 0.8)'
-        };
-      default:
-        return {
-          primary: '#2c3e50',
-          secondary: '#34495e',
-          accent: '#2c3e50',
-          shadow: 'rgba(255, 255, 255, 0.6)'
-        };
-    }
   };
 
   const rotateInterpolate = rotateAnim.interpolate({

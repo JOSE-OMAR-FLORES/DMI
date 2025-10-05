@@ -33,15 +33,6 @@ const PRESET_COLORS = [
   { name: 'Turquesa', color: '#06D6A0' },
 ];
 
-// Ciudades populares para autocompletado
-const POPULAR_CITIES = [
-  'Mexico City', 'Guadalajara', 'Monterrey', 'Puebla', 'Tijuana', 'León', 'Cancún',
-  'Tokyo', 'London', 'Paris', 'New York', 'Los Angeles', 'Madrid', 'Barcelona',
-  'Berlin', 'Rome', 'Amsterdam', 'Dubai', 'Singapore', 'Sydney', 'Moscow',
-  'Toronto', 'Chicago', 'Miami', 'San Francisco', 'Seattle', 'Boston',
-  'Buenos Aires', 'São Paulo', 'Rio de Janeiro', 'Lima', 'Bogotá', 'Santiago'
-];
-
 const AddFavoriteScreen = ({ navigation }) => {
   const [cityName, setCityName] = useState('');
   const [nickname, setNickname] = useState('');
@@ -52,39 +43,101 @@ const AddFavoriteScreen = ({ navigation }) => {
   const [isSearching, setIsSearching] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [searchError, setSearchError] = useState('');
-  const [suggestions, setSuggestions] = useState([]);
+  const [citySuggestions, setCitySuggestions] = useState([]); // Sugerencias del API
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
+  const [cityMismatchWarning, setCityMismatchWarning] = useState(''); // Aviso cuando la ciudad es diferente
 
   const user = useSelector((state) => state.auth.user);
   const userId = user?.id?.toString();
   const { showSuccess, showError, showWarning } = useToast();
 
   /**
-   * Filtrar sugerencias de ciudades
+   * Buscar ciudades mientras el usuario escribe (debounced)
    */
-  const handleCityInputChange = (text) => {
+  const handleCityInputChange = async (text) => {
     setCityName(text);
     
-    if (text.trim().length >= 2) {
-      const filtered = POPULAR_CITIES.filter(city =>
-        city.toLowerCase().includes(text.toLowerCase())
-      ).slice(0, 5);
-      
-      setSuggestions(filtered);
-      setShowSuggestions(filtered.length > 0);
+    // Limpiar weather data si cambia el texto
+    if (weatherData && text.trim() !== weatherData.city) {
+      setWeatherData(null);
+      setCityMismatchWarning(''); // Limpiar aviso también
+    }
+    
+    if (text.trim().length >= 3) {
+      try {
+        setIsLoadingSuggestions(true);
+        
+        // Buscar ciudades con el API de Geocoding
+        const result = await WeatherService.searchCities(text.trim(), 5);
+        
+        if (result.success) {
+          setCitySuggestions(result.data);
+          setShowSuggestions(result.data.length > 0);
+        } else {
+          setCitySuggestions([]);
+          setShowSuggestions(false);
+        }
+      } catch (error) {
+        console.error('Error buscando sugerencias:', error);
+        setCitySuggestions([]);
+        setShowSuggestions(false);
+      } finally {
+        setIsLoadingSuggestions(false);
+      }
     } else {
-      setSuggestions([]);
+      setCitySuggestions([]);
       setShowSuggestions(false);
     }
   };
 
   /**
-   * Seleccionar sugerencia
+   * Seleccionar una ciudad de las sugerencias
    */
-  const selectSuggestion = (city) => {
-    setCityName(city);
+  const selectSuggestion = async (city) => {
+    setCityName(city.label);
     setShowSuggestions(false);
-    setSuggestions([]);
+    setCitySuggestions([]);
+    
+    // Buscar automáticamente el clima usando coordenadas (más preciso)
+    try {
+      setIsSearching(true);
+      setSearchError('');
+      
+      console.log('🔍 Buscando clima para:', city.label, 'con coordenadas:', city.lat, city.lon);
+      
+      // Usar coordenadas en lugar del nombre para mayor precisión
+      const result = await WeatherService.getCurrentWeatherByCoords(city.lat, city.lon, city.name);
+
+      if (result.success) {
+        setWeatherData(result.data);
+        
+        // Si el nombre seleccionado es diferente al que devuelve el API,
+        // sugerirlo como nickname automáticamente y mostrar aviso
+        if (city.name !== result.data.city) {
+          if (!nickname.trim()) {
+            setNickname(city.name);
+          }
+          setCityMismatchWarning(
+            `"${city.name}" no está disponible en OpenWeather. Se mostrará el clima de "${result.data.city}" (ciudad más cercana).`
+          );
+          showSuccess(`📍 Mostrando clima de ${result.data.city}`);
+        } else {
+          setCityMismatchWarning(''); // Limpiar aviso si coincide
+          showSuccess(`Ciudad encontrada: ${result.data.city}, ${result.data.country}`);
+        }
+      } else {
+        setSearchError(result.error.message || 'Ciudad no encontrada');
+        setWeatherData(null);
+        setCityMismatchWarning('');
+      }
+    } catch (error) {
+      console.error('❌ Error:', error);
+      setSearchError('Error al buscar la ciudad');
+      setWeatherData(null);
+    } finally {
+      setIsSearching(false);
+    }
   };
 
   /**
@@ -99,6 +152,7 @@ const AddFavoriteScreen = ({ navigation }) => {
     try {
       setIsSearching(true);
       setSearchError('');
+      setCityMismatchWarning(''); // Limpiar aviso al buscar manualmente
       
       console.log('🔍 Buscando ciudad:', cityName);
       
@@ -187,20 +241,23 @@ const AddFavoriteScreen = ({ navigation }) => {
   };
 
   return (
-    <View style={styles.container}>
-      {/* Header con gradiente */}
+    <SafeAreaView style={styles.container} edges={['top']}>
+      {/* Header oscuro elegante */}
       <LinearGradient
-        colors={[COLORS.primary, COLORS.primaryDark]}
-        style={styles.headerGradient}
+        colors={COLORS.gradientDark}
+        style={styles.header}
       >
         <TouchableOpacity 
           style={styles.backButton}
           onPress={() => navigation.goBack()}
+          activeOpacity={0.7}
         >
-          <Text style={styles.backButtonText}>← Volver</Text>
+          <Text style={styles.backIcon}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Agregar Favorito</Text>
-        <Text style={styles.headerSubtitle}>Busca y personaliza tu ciudad</Text>
+        
+        <Text style={styles.headerTitle}>Agregar ciudad</Text>
+        
+        <View style={{ width: 44 }} />
       </LinearGradient>
 
       <KeyboardAvoidingView
@@ -216,22 +273,21 @@ const AddFavoriteScreen = ({ navigation }) => {
           {/* PASO 1: Buscar Ciudad */}
           <View style={styles.stepCard}>
             <View style={styles.stepHeader}>
-              <View style={styles.stepNumber}>
-                <Text style={styles.stepNumberText}>1</Text>
+              <View style={styles.stepBadge}>
+                <Text style={styles.stepBadgeText}>PASO 1</Text>
               </View>
-              <View style={styles.stepHeaderText}>
-                <Text style={styles.stepTitle}>Buscar Ciudad</Text>
-                <Text style={styles.stepSubtitle}>Encuentra tu ciudad favorita</Text>
-              </View>
+              <Text style={styles.stepTitle}>Buscar ciudad</Text>
+              <Text style={styles.stepSubtitle}>Encuentra la ciudad que quieres agregar</Text>
             </View>
 
-            <View style={styles.searchWrapper}>
-              <View style={styles.inputContainer}>
-                <Text style={styles.inputIcon}>🔍</Text>
+            <View style={styles.searchSection}>
+              <Text style={styles.inputLabel}>Nombre de la ciudad</Text>
+              <View style={styles.searchInputContainer}>
+                <Text style={styles.searchIcon}>🔍</Text>
                 <TextInput
                   style={styles.searchInput}
-                  placeholder="Escribe el nombre de la ciudad..."
-                  placeholderTextColor="#999"
+                  placeholder="Ej: Ciudad de México, París..."
+                  placeholderTextColor="#8E8E93"
                   value={cityName}
                   onChangeText={handleCityInputChange}
                   onSubmitEditing={handleSearchCity}
@@ -241,44 +297,34 @@ const AddFavoriteScreen = ({ navigation }) => {
               </View>
 
               {/* Sugerencias de Autocompletado */}
-              {showSuggestions && suggestions.length > 0 && (
-                <View style={styles.suggestionsBox}>
-                  {suggestions.map((city, index) => (
-                    <TouchableOpacity
-                      key={index}
-                      style={styles.suggestionItem}
-                      onPress={() => selectSuggestion(city)}
-                    >
-                      <Text style={styles.suggestionIcon}>📍</Text>
-                      <Text style={styles.suggestionText}>{city}</Text>
-                      <Text style={styles.suggestionArrow}>→</Text>
-                    </TouchableOpacity>
-                  ))}
+              {showSuggestions && citySuggestions.length > 0 && (
+                <View style={styles.suggestionsContainer}>
+                  {isLoadingSuggestions ? (
+                    <View style={styles.loadingBox}>
+                      <ActivityIndicator size="small" color="#667eea" />
+                      <Text style={styles.loadingText}>Buscando...</Text>
+                    </View>
+                  ) : (
+                    citySuggestions.map((city, index) => (
+                      <TouchableOpacity
+                        key={`${city.name}-${city.lat}-${index}`}
+                        style={styles.suggestionItem}
+                        onPress={() => selectSuggestion(city)}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={styles.suggestionIcon}>📍</Text>
+                        <View style={styles.suggestionText}>
+                          <Text style={styles.suggestionName}>{city.name}</Text>
+                          <Text style={styles.suggestionDetails}>
+                            {[city.state, city.country].filter(Boolean).join(', ')}
+                          </Text>
+                        </View>
+                        <Text style={styles.suggestionArrow}>→</Text>
+                      </TouchableOpacity>
+                    ))
+                  )}
                 </View>
               )}
-
-              <TouchableOpacity
-                style={[
-                  styles.searchButton,
-                  isSearching && styles.searchButtonDisabled
-                ]}
-                onPress={handleSearchCity}
-                disabled={isSearching}
-              >
-                <LinearGradient
-                  colors={[COLORS.primary, COLORS.primaryDark]}
-                  style={styles.searchButtonGradient}
-                >
-                  {isSearching ? (
-                    <ActivityIndicator size="small" color={COLORS.white} />
-                  ) : (
-                    <>
-                      <Text style={styles.searchButtonText}>Buscar Ciudad</Text>
-                      <Text style={styles.searchButtonIcon}>→</Text>
-                    </>
-                  )}
-                </LinearGradient>
-              </TouchableOpacity>
 
               {searchError && (
                 <View style={styles.errorBox}>
@@ -293,55 +339,64 @@ const AddFavoriteScreen = ({ navigation }) => {
           {weatherData && (
             <View style={styles.stepCard}>
               <View style={styles.stepHeader}>
-                <View style={[styles.stepNumber, styles.stepNumberSuccess]}>
-                  <Text style={styles.stepNumberText}>✓</Text>
+                <View style={[styles.stepBadge, styles.stepBadgeSuccess]}>
+                  <Text style={styles.stepBadgeText}>✓ ENCONTRADA</Text>
                 </View>
-                <View style={styles.stepHeaderText}>
-                  <Text style={styles.stepTitle}>Ciudad Encontrada</Text>
-                  <Text style={styles.stepSubtitle}>Clima actual</Text>
-                </View>
+                <Text style={styles.stepTitle}>Clima actual</Text>
+                <Text style={styles.stepSubtitle}>Información meteorológica</Text>
               </View>
 
-              <View style={styles.weatherPreview}>
-                <LinearGradient
-                  colors={['#4facfe', '#00f2fe']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.weatherGradient}
-                >
-                  <View style={styles.weatherTop}>
-                    <View>
-                      <Text style={styles.weatherCity}>{weatherData.city}</Text>
-                      <Text style={styles.weatherCountry}>{weatherData.country}</Text>
-                    </View>
-                    <Text style={styles.weatherIcon}>
-                      {weatherData.description?.includes('clear') ? '☀️' :
-                       weatherData.description?.includes('cloud') ? '☁️' :
-                       weatherData.description?.includes('rain') ? '🌧️' : '🌤️'}
-                    </Text>
-                  </View>
-                  
-                  <View style={styles.weatherBottom}>
-                    <Text style={styles.weatherTemp}>{Math.round(weatherData.temperature)}°</Text>
-                    <Text style={styles.weatherDesc}>{weatherData.description}</Text>
-                  </View>
+              {/* Aviso cuando la ciudad no está disponible */}
+              {cityMismatchWarning && (
+                <View style={styles.warningBox}>
+                  <Text style={styles.warningIcon}>ℹ️</Text>
+                  <Text style={styles.warningText}>{cityMismatchWarning}</Text>
+                </View>
+              )}
 
-                  <View style={styles.weatherStats}>
-                    <View style={styles.weatherStat}>
-                      <Text style={styles.weatherStatIcon}>💧</Text>
-                      <Text style={styles.weatherStatText}>{weatherData.humidity}%</Text>
-                    </View>
-                    <View style={styles.weatherStat}>
-                      <Text style={styles.weatherStatIcon}>💨</Text>
-                      <Text style={styles.weatherStatText}>{Math.round(weatherData.windSpeed)} km/h</Text>
-                    </View>
-                    <View style={styles.weatherStat}>
-                      <Text style={styles.weatherStatIcon}>🌡️</Text>
-                      <Text style={styles.weatherStatText}>{Math.round(weatherData.feelsLike)}°</Text>
-                    </View>
+              <LinearGradient
+                colors={['#667eea', '#764ba2']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.weatherCard}
+              >
+                <View style={styles.weatherHeader}>
+                  <View style={styles.weatherLocation}>
+                    <Text style={styles.weatherCity}>{weatherData.city}</Text>
+                    <Text style={styles.weatherCountry}>{weatherData.country}</Text>
                   </View>
-                </LinearGradient>
-              </View>
+                  <Text style={styles.weatherEmoji}>
+                    {weatherData.description?.includes('clear') ? '☀️' :
+                     weatherData.description?.includes('cloud') ? '☁️' :
+                     weatherData.description?.includes('rain') ? '🌧️' : '🌤️'}
+                  </Text>
+                </View>
+                
+                <View style={styles.weatherMain}>
+                  <Text style={styles.weatherTemp}>{Math.round(weatherData.temperature)}°</Text>
+                  <Text style={styles.weatherDescription}>{weatherData.description}</Text>
+                </View>
+
+                <View style={styles.weatherDetails}>
+                  <View style={styles.weatherDetail}>
+                    <Text style={styles.weatherDetailIcon}>💧</Text>
+                    <Text style={styles.weatherDetailValue}>{weatherData.humidity}%</Text>
+                    <Text style={styles.weatherDetailLabel}>Humedad</Text>
+                  </View>
+                  <View style={styles.weatherDetailDivider} />
+                  <View style={styles.weatherDetail}>
+                    <Text style={styles.weatherDetailIcon}>💨</Text>
+                    <Text style={styles.weatherDetailValue}>{Math.round(weatherData.windSpeed)}</Text>
+                    <Text style={styles.weatherDetailLabel}>km/h</Text>
+                  </View>
+                  <View style={styles.weatherDetailDivider} />
+                  <View style={styles.weatherDetail}>
+                    <Text style={styles.weatherDetailIcon}>🌡️</Text>
+                    <Text style={styles.weatherDetailValue}>{Math.round(weatherData.feelsLike)}°</Text>
+                    <Text style={styles.weatherDetailLabel}>Sensación</Text>
+                  </View>
+                </View>
+              </LinearGradient>
             </View>
           )}
 
@@ -349,23 +404,21 @@ const AddFavoriteScreen = ({ navigation }) => {
           {weatherData && (
             <View style={styles.stepCard}>
               <View style={styles.stepHeader}>
-                <View style={styles.stepNumber}>
-                  <Text style={styles.stepNumberText}>2</Text>
+                <View style={styles.stepBadge}>
+                  <Text style={styles.stepBadgeText}>PASO 2</Text>
                 </View>
-                <View style={styles.stepHeaderText}>
-                  <Text style={styles.stepTitle}>Personalizar</Text>
-                  <Text style={styles.stepSubtitle}>Opcional - Dale tu toque personal</Text>
-                </View>
+                <Text style={styles.stepTitle}>Personaliza (opcional)</Text>
+                <Text style={styles.stepSubtitle}>Dale tu toque personal a esta ciudad</Text>
               </View>
 
-              <View style={styles.personalizationContent}>
+              <View style={styles.personalizationSection}>
                 {/* Nickname */}
-                <View style={styles.fieldGroup}>
-                  <Text style={styles.fieldLabel}>🏷️ Nombre personalizado</Text>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>🏷️ Nombre personalizado</Text>
                   <TextInput
-                    style={styles.textInput}
-                    placeholder="Ej: Casa, Playa, Viaje..."
-                    placeholderTextColor="#999"
+                    style={styles.input}
+                    placeholder="Ej: Mi casa, Trabajo, Vacaciones..."
+                    placeholderTextColor="#8E8E93"
                     value={nickname}
                     onChangeText={setNickname}
                     maxLength={30}
@@ -373,39 +426,38 @@ const AddFavoriteScreen = ({ navigation }) => {
                 </View>
 
                 {/* Notas */}
-                <View style={styles.fieldGroup}>
-                  <Text style={styles.fieldLabel}>📝 Nota personal</Text>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>📝 Notas</Text>
                   <TextInput
-                    style={[styles.textInput, styles.textArea]}
+                    style={[styles.input, styles.textArea]}
                     placeholder="Ej: Ciudad natal, viajo aquí seguido..."
-                    placeholderTextColor="#999"
+                    placeholderTextColor="#8E8E93"
                     value={notes}
                     onChangeText={setNotes}
                     multiline
                     numberOfLines={3}
                     maxLength={100}
+                    textAlignVertical="top"
                   />
                 </View>
 
                 {/* Selector de color */}
-                <View style={styles.fieldGroup}>
-                  <Text style={styles.fieldLabel}>🎨 Color de identificación</Text>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>🎨 Color</Text>
                   <View style={styles.colorGrid}>
                     {PRESET_COLORS.map((item) => (
                       <TouchableOpacity
                         key={item.color}
                         style={[
-                          styles.colorOption,
+                          styles.colorCircle,
                           { backgroundColor: item.color },
-                          selectedColor === item.color && styles.colorOptionSelected,
+                          selectedColor === item.color && styles.colorCircleSelected,
                         ]}
                         onPress={() => setSelectedColor(item.color)}
                         activeOpacity={0.7}
                       >
                         {selectedColor === item.color && (
-                          <View style={styles.colorCheckContainer}>
-                            <Text style={styles.colorCheck}>✓</Text>
-                          </View>
+                          <Text style={styles.colorCheck}>✓</Text>
                         )}
                       </TouchableOpacity>
                     ))}
@@ -418,26 +470,26 @@ const AddFavoriteScreen = ({ navigation }) => {
           {/* Botón Guardar */}
           {weatherData && (
             <TouchableOpacity
-              style={[styles.saveButton, isSaving && styles.saveButtonDisabled]}
+              style={styles.saveButtonContainer}
               onPress={handleSaveFavorite}
               disabled={isSaving}
               activeOpacity={0.8}
             >
               <LinearGradient
-                colors={['#11998e', '#38ef7d']}
+                colors={['#667eea', '#764ba2']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
-                style={styles.saveButtonGradient}
+                style={styles.saveButton}
               >
                 {isSaving ? (
                   <>
-                    <ActivityIndicator size="small" color={COLORS.white} />
+                    <ActivityIndicator size="small" color="#FFFFFF" />
                     <Text style={styles.saveButtonText}>Guardando...</Text>
                   </>
                 ) : (
                   <>
                     <Text style={styles.saveButtonIcon}>💾</Text>
-                    <Text style={styles.saveButtonText}>Guardar Favorito</Text>
+                    <Text style={styles.saveButtonText}>Guardar favorito</Text>
                   </>
                 )}
               </LinearGradient>
@@ -447,425 +499,362 @@ const AddFavoriteScreen = ({ navigation }) => {
           <View style={{ height: 30 }} />
         </ScrollView>
       </KeyboardAvoidingView>
-    </View>
+    </SafeAreaView>
   );
 };
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: COLORS.background, // #121212
   },
   
-  // Header
-  headerGradient: {
-    paddingTop: 50,
-    paddingBottom: 30,
+  // Header - Tema Oscuro
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 20,
+    paddingVertical: 20,
   },
-  
   backButton: {
-    alignSelf: 'flex-start',
-    marginBottom: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: COLORS.backgroundElevated,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
-  
-  backButtonText: {
-    color: COLORS.white,
-    fontSize: 16,
-    fontWeight: '600',
+  backIcon: {
+    fontSize: 24,
+    color: COLORS.textPrimary,
   },
-  
   headerTitle: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: COLORS.white,
-    marginBottom: 8,
-    letterSpacing: 0.5,
-  },
-  
-  headerSubtitle: {
-    fontSize: 16,
-    color: 'rgba(255,255,255,0.9)',
-    fontWeight: '400',
+    fontSize: 20,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
   },
   
   // Main Content
   keyboardView: {
     flex: 1,
   },
-  
   scrollView: {
     flex: 1,
   },
-  
   scrollContent: {
     padding: 20,
   },
   
-  // Step Cards
+  // Step Cards - Tema Oscuro
   stepCard: {
-    backgroundColor: COLORS.white,
-    borderRadius: 20,
+    backgroundColor: COLORS.backgroundCard, // #1E1E1E
+    borderRadius: 16,
     padding: 20,
     marginBottom: 20,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
+    borderWidth: 1,
+    borderColor: COLORS.border, // #333333
   },
-  
   stepHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
     marginBottom: 20,
   },
-  
-  stepNumber: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: COLORS.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 15,
+  stepBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: COLORS.primary, // #00BFFF
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    marginBottom: 12,
   },
-  
-  stepNumberSuccess: {
-    backgroundColor: '#11998e',
+  stepBadgeSuccess: {
+    backgroundColor: COLORS.success,
   },
-  
-  stepNumberText: {
-    fontSize: 20,
+  stepBadgeText: {
+    fontSize: 12,
     fontWeight: '700',
-    color: COLORS.white,
+    color: COLORS.textPrimary,
+    letterSpacing: 0.5,
   },
-  
-  stepHeaderText: {
-    flex: 1,
-  },
-  
   stepTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1A1A1A',
-    marginBottom: 3,
+    color: COLORS.textPrimary,
+    marginBottom: 6,
   },
-  
   stepSubtitle: {
     fontSize: 14,
-    color: '#666',
+    fontWeight: '400',
+    color: COLORS.textSecondary,
+    lineHeight: 20,
   },
   
-  // Search
-  searchWrapper: {
-    position: 'relative',
+  // Search Section - Tema Oscuro
+  searchSection: {
+    gap: 12,
   },
-  
-  inputContainer: {
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.textPrimary,
+    marginBottom: 4,
+  },
+  searchInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F5F5F5',
-    borderRadius: 14,
+    backgroundColor: COLORS.backgroundElevated, // #2C2C2C
+    borderRadius: 12,
     paddingHorizontal: 16,
-    marginBottom: 15,
-    borderWidth: 2,
-    borderColor: 'transparent',
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
-  
-  inputIcon: {
-    fontSize: 20,
-    marginRight: 10,
+  searchIcon: {
+    fontSize: 18,
+    marginRight: 12,
   },
-  
   searchInput: {
     flex: 1,
-    paddingVertical: 16,
+    paddingVertical: 14,
     fontSize: 16,
-    color: '#1A1A1A',
-    fontWeight: '500',
+    color: COLORS.textPrimary,
   },
   
-  // Suggestions
-  suggestionsBox: {
-    backgroundColor: COLORS.white,
-    borderRadius: 14,
-    marginBottom: 15,
+  // Suggestions - Tema Oscuro
+  suggestionsContainer: {
+    backgroundColor: COLORS.backgroundElevated,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: COLORS.border,
     overflow: 'hidden',
+    maxHeight: 280,
   },
-  
+  loadingBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  loadingText: {
+    marginLeft: 10,
+    fontSize: 14,
+    color: COLORS.textSecondary,
+  },
   suggestionItem: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    borderBottomColor: COLORS.border,
   },
-  
   suggestionIcon: {
     fontSize: 18,
     marginRight: 12,
   },
-  
   suggestionText: {
     flex: 1,
+  },
+  suggestionName: {
     fontSize: 15,
-    color: '#1A1A1A',
-    fontWeight: '500',
+    fontWeight: '600',
+    color: COLORS.textPrimary,
+    marginBottom: 2,
   },
-  
+  suggestionDetails: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
+  },
   suggestionArrow: {
-    fontSize: 16,
-    color: '#999',
-  },
-  
-  // Search Button
-  searchButton: {
-    borderRadius: 14,
-    overflow: 'hidden',
-    elevation: 3,
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-  },
-  
-  searchButtonDisabled: {
-    opacity: 0.6,
-  },
-  
-  searchButtonGradient: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 16,
-  },
-  
-  searchButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: COLORS.white,
-    marginRight: 8,
-  },
-  
-  searchButtonIcon: {
     fontSize: 18,
-    color: COLORS.white,
-    fontWeight: 'bold',
+    color: COLORS.textTertiary,
+    marginLeft: 8,
   },
   
-  // Error
+  // Error & Warning - Tema Oscuro
   errorBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFF3F3',
+    backgroundColor: 'rgba(255, 59, 48, 0.15)',
     padding: 14,
     borderRadius: 12,
     borderLeftWidth: 4,
-    borderLeftColor: '#FF3B30',
-    marginTop: 10,
+    borderLeftColor: COLORS.error,
+    marginTop: 12,
   },
-  
   errorIcon: {
     fontSize: 20,
     marginRight: 10,
   },
-  
   errorText: {
     flex: 1,
     fontSize: 14,
-    color: '#D32F2F',
+    color: COLORS.error,
     fontWeight: '500',
   },
-  
-  // Weather Preview
-  weatherPreview: {
-    borderRadius: 16,
-    overflow: 'hidden',
-    elevation: 5,
-    shadowColor: '#4facfe',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+  warningBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: 'rgba(255, 165, 0, 0.15)',
+    padding: 14,
+    borderRadius: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: COLORS.accent, // #FFA500
+    marginBottom: 16,
+  },
+  warningIcon: {
+    fontSize: 20,
+    marginRight: 10,
+    marginTop: 2,
+  },
+  warningText: {
+    flex: 1,
+    fontSize: 14,
+    color: COLORS.accent,
+    fontWeight: '500',
+    lineHeight: 20,
   },
   
-  weatherGradient: {
+  // Weather Card - Tema Oscuro
+  weatherCard: {
+    borderRadius: 16,
     padding: 24,
   },
-  
-  weatherTop: {
+  weatherHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     marginBottom: 20,
   },
-  
+  weatherLocation: {
+    flex: 1,
+  },
   weatherCity: {
     fontSize: 24,
     fontWeight: '700',
-    color: COLORS.white,
+    color: COLORS.textPrimary,
     marginBottom: 4,
   },
-  
   weatherCountry: {
     fontSize: 14,
-    color: 'rgba(255,255,255,0.8)',
+    color: COLORS.textSecondary,
     fontWeight: '500',
   },
-  
-  weatherIcon: {
+  weatherEmoji: {
     fontSize: 44,
   },
-  
-  weatherBottom: {
-    marginBottom: 20,
+  weatherMain: {
+    marginBottom: 24,
   },
-  
   weatherTemp: {
-    fontSize: 56,
+    fontSize: 64,
     fontWeight: '800',
-    color: COLORS.white,
+    color: COLORS.textPrimary,
     marginBottom: 4,
   },
-  
-  weatherDesc: {
+  weatherDescription: {
     fontSize: 18,
-    color: 'rgba(255,255,255,0.9)',
+    color: COLORS.textSecondary,
     textTransform: 'capitalize',
     fontWeight: '500',
   },
-  
-  weatherStats: {
+  weatherDetails: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     paddingTop: 20,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.3)',
+    borderTopColor: COLORS.border,
   },
-  
-  weatherStat: {
+  weatherDetail: {
     alignItems: 'center',
   },
-  
-  weatherStatIcon: {
+  weatherDetailIcon: {
     fontSize: 24,
     marginBottom: 6,
   },
-  
-  weatherStatText: {
-    fontSize: 14,
-    color: COLORS.white,
-    fontWeight: '600',
+  weatherDetailValue: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: COLORS.primary,
+    marginBottom: 2,
+  },
+  weatherDetailLabel: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    fontWeight: '500',
+  },
+  weatherDetailDivider: {
+    width: 1,
+    backgroundColor: COLORS.border,
   },
   
-  // Personalization
-  personalizationContent: {
+  // Personalization - Tema Oscuro
+  personalizationSection: {
     gap: 20,
   },
-  
-  fieldGroup: {
-    marginBottom: 5,
+  inputGroup: {
+    gap: 8,
   },
-  
-  fieldLabel: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#1A1A1A',
-    marginBottom: 10,
-  },
-  
-  textInput: {
-    backgroundColor: '#F5F5F5',
+  input: {
+    backgroundColor: COLORS.backgroundElevated,
     borderRadius: 12,
     padding: 16,
-    fontSize: 15,
-    color: '#1A1A1A',
-    borderWidth: 2,
-    borderColor: 'transparent',
+    fontSize: 16,
+    color: COLORS.textPrimary,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
-  
   textArea: {
-    height: 90,
-    textAlignVertical: 'top',
+    height: 100,
+    paddingTop: 16,
   },
   
-  // Color Picker
+  // Color Picker - Tema Oscuro
   colorGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 12,
   },
-  
-  colorOption: {
+  colorCircle: {
     width: 54,
     height: 54,
     borderRadius: 27,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 4,
+    borderWidth: 3,
     borderColor: 'transparent',
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
   },
-  
-  colorOptionSelected: {
-    borderColor: '#1A1A1A',
-    elevation: 6,
-    shadowOpacity: 0.3,
+  colorCircleSelected: {
+    borderColor: COLORS.primary,
     transform: [{ scale: 1.1 }],
   },
-  
-  colorCheckContainer: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  
   colorCheck: {
-    fontSize: 16,
-    color: COLORS.white,
+    fontSize: 20,
+    color: COLORS.textPrimary,
     fontWeight: 'bold',
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   
-  // Save Button
-  saveButton: {
-    borderRadius: 16,
-    overflow: 'hidden',
+  // Save Button - Tema Oscuro
+  saveButtonContainer: {
     marginTop: 10,
-    elevation: 5,
-    shadowColor: '#11998e',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
+    borderRadius: 14,
+    overflow: 'hidden',
   },
-  
-  saveButtonDisabled: {
-    opacity: 0.6,
-  },
-  
-  saveButtonGradient: {
+  saveButton: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: 18,
     gap: 10,
   },
-  
   saveButtonIcon: {
     fontSize: 22,
   },
-  
   saveButtonText: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: COLORS.white,
+    fontSize: 17,
+    fontWeight: '600',
+    color: COLORS.textPrimary,
   },
 });
 

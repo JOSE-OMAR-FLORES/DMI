@@ -96,94 +96,83 @@ const EditFavoriteScreen = ({ route, navigation }) => {
   };
 
   return (
-    <SafeAreaView style={GLOBAL_STYLES.container}>
-      <LinearGradient
-        colors={[COLORS.backgroundStart, COLORS.backgroundEnd]}
-        style={styles.gradient}
-      >
-        <KeyboardAvoidingView
-          style={{ flex: 1 }}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    <SafeAreaView style={styles.container} edges={['top']}>
+      {/* Header con botón de regresar */}
+      <View style={styles.header}>
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.7}
         >
-          <ScrollView
-            style={styles.scrollView}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-          >
-            {/* Header */}
-            <View style={styles.header}>
-              <Text style={styles.title}>Editar Favorito</Text>
-              <Text style={styles.subtitle}>
-                Personaliza tu ciudad favorita
-              </Text>
-            </View>
+          <Text style={styles.backIcon}>←</Text>
+        </TouchableOpacity>
+        
+        <Text style={styles.headerTitle}>Editar favorito</Text>
+        
+        <View style={{ width: 44 }} />
+      </View>
 
-            {/* Información de la ciudad (no editable) */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>📍 Ciudad</Text>
-              <View style={styles.cityInfo}>
-                <Text style={styles.cityName}>
-                  {favorite.city}, {favorite.country}
-                </Text>
-                <Text style={styles.cityNote}>
-                  (La ciudad no se puede cambiar)
-                </Text>
-              </View>
-            </View>
-
-            {/* Clima actual (solo lectura) */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>🌤️ Clima Actual (solo lectura)</Text>
-              <View style={styles.weatherCard}>
-                <View style={styles.weatherRow}>
-                  <Text style={styles.weatherLabel}>Temperatura:</Text>
-                  <Text style={styles.weatherValue}>
-                    {favorite.weatherSnapshot?.temperature || '--'}°C
-                  </Text>
-                </View>
-                <View style={styles.weatherRow}>
-                  <Text style={styles.weatherLabel}>Condición:</Text>
-                  <Text style={styles.weatherValue}>
-                    {favorite.weatherSnapshot?.condition || 'Sin datos'}
-                  </Text>
-                </View>
-                <Text style={styles.weatherNote}>
-                  El clima se actualiza automáticamente al ver el favorito
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* Información de la ciudad */}
+          <View style={styles.cityCard}>
+            <Text style={styles.cityCardTitle}>📍 {favorite.city}</Text>
+            <Text style={styles.cityCardSubtitle}>{favorite.country}</Text>
+            {favorite.weatherSnapshot && (
+              <View style={styles.weatherBadge}>
+                <Text style={styles.weatherBadgeText}>
+                  {Math.round(favorite.weatherSnapshot.temp)}° · {favorite.weatherSnapshot.description}
                 </Text>
               </View>
-            </View>
+            )}
+          </View>
 
-            {/* Editar personalización */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>✨ Personalización</Text>
+          {/* Sección de personalización */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>✨ Personalización</Text>
 
-              {/* Nickname */}
+            {/* Nickname */}
+            <View style={styles.inputContainer}>
               <Text style={styles.label}>Nombre personalizado</Text>
               <TextInput
                 style={styles.input}
                 placeholder={favorite.city}
-                placeholderTextColor={COLORS.textSecondary}
+                placeholderTextColor="#8E8E93"
                 value={nickname}
                 onChangeText={setNickname}
                 maxLength={30}
               />
+            </View>
 
-              {/* Notas */}
+            {/* Notas */}
+            <View style={styles.inputContainer}>
               <Text style={styles.label}>Nota personal</Text>
               <TextInput
                 style={[styles.input, styles.textArea]}
-                placeholder="Agrega notas sobre esta ciudad..."
-                placeholderTextColor={COLORS.textSecondary}
+                placeholder="Agrega una nota sobre esta ciudad..."
+                placeholderTextColor="#8E8E93"
                 value={notes}
                 onChangeText={setNotes}
                 multiline
-                numberOfLines={3}
-                maxLength={100}
+                numberOfLines={4}
+                maxLength={150}
+                textAlignVertical="top"
               />
+              <Text style={styles.charCount}>{notes.length}/150</Text>
+            </View>
 
-              {/* Selector de color */}
+            {/* Selector de color */}
+            <View style={styles.inputContainer}>
               <Text style={styles.label}>Color de identificación</Text>
-              <View style={styles.colorPicker}>
+              <View style={styles.colorGrid}>
                 {PRESET_COLORS.map((item) => (
                   <TouchableOpacity
                     key={item.color}
@@ -193,6 +182,7 @@ const EditFavoriteScreen = ({ route, navigation }) => {
                       selectedColor === item.color && styles.colorOptionSelected,
                     ]}
                     onPress={() => setSelectedColor(item.color)}
+                    activeOpacity={0.8}
                   >
                     {selectedColor === item.color && (
                       <Text style={styles.colorCheckmark}>✓</Text>
@@ -201,174 +191,240 @@ const EditFavoriteScreen = ({ route, navigation }) => {
                 ))}
               </View>
             </View>
+          </View>
 
-            {/* Botones de acción */}
-            <View style={styles.actionsContainer}>
-              <CustomButton
-                title={isSaving ? 'Guardando...' : '💾 Guardar Cambios'}
-                onPress={handleSave}
-                disabled={isSaving}
-                style={styles.saveButton}
-              />
+          {/* Botones de acción */}
+          <TouchableOpacity
+            style={[styles.saveButton, isSaving && styles.saveButtonDisabled]}
+            onPress={handleSave}
+            disabled={isSaving}
+            activeOpacity={0.8}
+          >
+            <LinearGradient
+              colors={['#667eea', '#764ba2']}
+              style={styles.saveButtonGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <Text style={styles.saveButtonText}>
+                {isSaving ? 'Guardando...' : 'Guardar cambios'}
+              </Text>
+            </LinearGradient>
+          </TouchableOpacity>
 
-              <TouchableOpacity
-                style={styles.deleteButton}
-                onPress={handleDelete}
-                disabled={isSaving}
-              >
-                <Text style={styles.deleteButtonText}>
-                  🗑️ Eliminar Favorito
-                </Text>
-              </TouchableOpacity>
-            </View>
+          <TouchableOpacity
+            style={styles.deleteButton}
+            onPress={handleDelete}
+            disabled={isSaving}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.deleteIcon}>🗑️</Text>
+            <Text style={styles.deleteText}>Eliminar de favoritos</Text>
+          </TouchableOpacity>
 
-            <View style={{ height: 40 }} />
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </LinearGradient>
+          <View style={{ height: 40 }} />
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  gradient: {
+  container: {
     flex: 1,
+    backgroundColor: COLORS.background,
   },
+  
+  // Header - Tema Oscuro
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  backButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: COLORS.backgroundElevated,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  backIcon: {
+    fontSize: 24,
+    color: COLORS.textPrimary,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+  },
+  
+  // Scroll
   scrollView: {
     flex: 1,
   },
-  header: {
+  scrollContent: {
     padding: 20,
-    paddingBottom: 10,
   },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: COLORS.white,
-    marginBottom: 8,
+  
+  // City Card - Tema Oscuro
+  cityCard: {
+    backgroundColor: COLORS.backgroundCard,
+    borderRadius: 20,
+    padding: 24,
+    marginBottom: 24,
+    borderLeftWidth: 4,
+    borderLeftColor: COLORS.primary,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
-  subtitle: {
-    fontSize: 14,
-    color: COLORS.white,
-    opacity: 0.7,
+  cityCardTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+    marginBottom: 4,
   },
-  section: {
-    padding: 20,
-    paddingTop: 10,
+  cityCardSubtitle: {
+    fontSize: 16,
+    color: COLORS.textSecondary,
+    marginBottom: 12,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: COLORS.white,
-    marginBottom: 16,
-  },
-  cityInfo: {
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+  weatherBadge: {
+    backgroundColor: COLORS.backgroundElevated,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     borderRadius: 12,
-    padding: 16,
-  },
-  cityName: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: COLORS.white,
-    marginBottom: 8,
-  },
-  cityNote: {
-    fontSize: 12,
-    color: COLORS.white,
-    opacity: 0.7,
-    fontStyle: 'italic',
-  },
-  weatherCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    borderRadius: 12,
-    padding: 16,
-  },
-  weatherRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  weatherLabel: {
-    fontSize: 14,
-    color: COLORS.white,
-    opacity: 0.8,
-  },
-  weatherValue: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: COLORS.white,
-  },
-  weatherNote: {
-    fontSize: 12,
-    color: COLORS.white,
-    opacity: 0.6,
-    fontStyle: 'italic',
+    alignSelf: 'flex-start',
     marginTop: 8,
   },
-  label: {
+  weatherBadgeText: {
     fontSize: 14,
-    color: COLORS.white,
-    opacity: 0.9,
+    color: COLORS.primary,
+    fontWeight: '600',
+  },
+  
+  // Section - Tema Oscuro
+  section: {
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+    marginBottom: 20,
+  },
+  
+  // Input - Tema Oscuro
+  inputContainer: {
+    marginBottom: 20,
+  },
+  label: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: COLORS.textPrimary,
     marginBottom: 8,
-    marginTop: 16,
   },
   input: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 12,
+    backgroundColor: COLORS.backgroundElevated,
+    borderRadius: 16,
     padding: 16,
-    color: COLORS.white,
     fontSize: 16,
+    color: COLORS.textPrimary,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
   textArea: {
-    height: 80,
-    textAlignVertical: 'top',
+    height: 120,
+    paddingTop: 16,
   },
-  colorPicker: {
+  charCount: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    textAlign: 'right',
+    marginTop: 6,
+  },
+  
+  // Color Picker - Tema Oscuro
+  colorGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 12,
   },
   colorOption: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: 54,
+    height: 54,
+    borderRadius: 27,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 3,
     borderColor: 'transparent',
-  },
-  colorOptionSelected: {
-    borderColor: COLORS.white,
-    elevation: 5,
-    shadowColor: '#000',
+    elevation: 2,
+    shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.1,
     shadowRadius: 4,
   },
+  colorOptionSelected: {
+    borderColor: COLORS.primary,
+    elevation: 6,
+    shadowOpacity: 0.3,
+    transform: [{ scale: 1.1 }],
+  },
   colorCheckmark: {
-    fontSize: 24,
-    color: COLORS.white,
+    fontSize: 22,
+    color: COLORS.textPrimary,
     fontWeight: 'bold',
   },
-  actionsContainer: {
-    padding: 20,
-  },
+  
+  // Save Button - Tema Oscuro
   saveButton: {
-    marginBottom: 16,
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginBottom: 12,
+    elevation: 6,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
   },
-  deleteButton: {
-    backgroundColor: 'rgba(255, 0, 0, 0.3)',
-    borderRadius: 12,
-    padding: 16,
+  saveButtonDisabled: {
+    opacity: 0.6,
+  },
+  saveButtonGradient: {
+    paddingVertical: 18,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
-  deleteButtonText: {
-    color: COLORS.white,
+  saveButtonText: {
+    color: COLORS.textPrimary,
+    fontSize: 17,
+    fontWeight: '600',
+  },
+  
+  // Delete Button - Tema Oscuro
+  deleteButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 59, 48, 0.15)',
+    borderRadius: 16,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: COLORS.error,
+  },
+  deleteIcon: {
+    fontSize: 20,
+    marginRight: 8,
+  },
+  deleteText: {
+    color: COLORS.error,
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '600',
   },
 });
 

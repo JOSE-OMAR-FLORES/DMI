@@ -1,13 +1,16 @@
-import React, { useEffect, useRef } from 'react';
-import { View, Text, ScrollView, Animated, StatusBar } from 'react-native';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { View, ScrollView, Animated, StatusBar, TouchableOpacity, ActivityIndicator, StyleSheet } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { useDispatch, useSelector } from 'react-redux';
 import { LinearGradient } from 'expo-linear-gradient';
 import { CustomButton, WeatherCard } from '../components';
+import CustomText from '../components/CustomText';
 import { useToast } from '../context/ToastContext';
 import { GLOBAL_STYLES } from '../constants/styles';
 import { COLORS } from '../constants/colors';
 import { logoutUser, checkAuthStatus } from '../context/authSlice';
+import FirebaseFavoritesService from '../utils/FirebaseFavoritesService';
 
 const DashboardScreen = ({ navigation }) => {
   const dispatch = useDispatch();
@@ -27,6 +30,19 @@ const DashboardScreen = ({ navigation }) => {
   const floatingAnim2 = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.95)).current;
   const rotateAnim = useRef(new Animated.Value(0)).current;
+
+  // Estado para favoritos
+  const [favorites, setFavorites] = useState([]);
+  const [loadingFavorites, setLoadingFavorites] = useState(false);
+  const userId = user?.id?.toString();
+
+  // Helper para validar color
+  const getSafeColor = (color) => {
+    if (color && typeof color === 'string' && /^#[0-9A-F]{6}$/i.test(color)) {
+      return color;
+    }
+    return COLORS.primary;
+  };
 
   useEffect(() => {
     // La verificación de auth ya se hace en SecurityInitializer
@@ -67,6 +83,9 @@ const DashboardScreen = ({ navigation }) => {
     // Animaciones continuas de fondo
     startBackgroundAnimations();
 
+    // Cargar favoritos
+    loadFavorites();
+
     // Mensaje de bienvenida personalizado con emoji dinámico
     setTimeout(() => {
       const userName = user?.name || 'Usuario';
@@ -85,6 +104,16 @@ const DashboardScreen = ({ navigation }) => {
       showSuccess(`${greeting} ${userName}! ${emoji}`, 3500);
     }, 1200);
   }, [dispatch]);
+
+  // Recargar favoritos cada vez que la pantalla recibe foco
+  useFocusEffect(
+    useCallback(() => {
+      if (userId) {
+        console.log('🔄 Dashboard recibió foco, recargando favoritos...');
+        loadFavorites();
+      }
+    }, [userId])
+  );
 
   const startBackgroundAnimations = () => {
     // Animación flotante continua 1
@@ -138,6 +167,42 @@ const DashboardScreen = ({ navigation }) => {
     }
   }, [isAuthenticated, isLoading, navigation]);
 
+  // Cargar favoritos desde Firebase
+  const loadFavorites = async () => {
+    if (!userId) {
+      console.log('⚠️ No hay userId, no se pueden cargar favoritos');
+      return;
+    }
+    
+    console.log('📖 Cargando favoritos para userId:', userId);
+    setLoadingFavorites(true);
+    try {
+      const userFavorites = await FirebaseFavoritesService.getFavorites(userId);
+      console.log('✅ Favoritos cargados:', userFavorites.length, 'encontrados');
+      setFavorites(userFavorites.slice(0, 3)); // Mostrar solo los primeros 3
+    } catch (error) {
+      console.error('❌ Error al cargar favoritos:', error);
+    } finally {
+      setLoadingFavorites(false);
+    }
+  };
+
+  // Helper para mostrar tiempo desde última actualización
+  const getTimeSinceUpdate = (timestamp) => {
+    if (!timestamp) return 'Sin actualizar';
+    
+    const now = new Date();
+    const updated = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+    const diffInMinutes = Math.floor((now - updated) / (1000 * 60));
+    
+    if (diffInMinutes < 1) return 'Ahora';
+    if (diffInMinutes < 60) return `Hace ${diffInMinutes} min`;
+    const hours = Math.floor(diffInMinutes / 60);
+    if (hours < 24) return `Hace ${hours}h`;
+    const days = Math.floor(hours / 24);
+    return `Hace ${days}d`;
+  };
+
   const handleLogout = async () => {
     showWarning('Cerrando sesión...', 2000);
     
@@ -155,156 +220,50 @@ const DashboardScreen = ({ navigation }) => {
   };
 
   return (
-    <SafeAreaView style={[GLOBAL_STYLES.container, { paddingTop: 0 }]} edges={['bottom']}>
-      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent={true} />
-      
-      {/* Elementos flotantes decorativos de fondo */}
-      <View style={styles.backgroundEffects}>
-        <Animated.View 
-          style={[
-            styles.floatingElement1,
-            {
-              opacity: fadeAnim.interpolate({
-                inputRange: [0, 1],
-                outputRange: [0, 0.1],
-              }),
-              transform: [
-                {
-                  translateY: floatingAnim1.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0, -20],
-                  })
-                },
-                {
-                  rotate: rotateAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: ['0deg', '360deg'],
-                  })
-                }
-              ],
-            }
-          ]}
-        />
-        <Animated.View 
-          style={[
-            styles.floatingElement2,
-            {
-              opacity: fadeAnim.interpolate({
-                inputRange: [0, 1],
-                outputRange: [0, 0.08],
-              }),
-              transform: [
-                {
-                  translateY: floatingAnim2.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0, 15],
-                  })
-                },
-                {
-                  scale: scaleAnim,
-                }
-              ],
-            }
-          ]}
-        />
-      </View>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      <StatusBar barStyle="light-content" backgroundColor="#121212" />
 
       <ScrollView 
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: insets.bottom + 120 }} // Espacio para el botón + safe area
+        contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
       >
-        {/* Header con gradiente que cubre toda la parte superior */}
-        <Animated.View 
-          style={[
-            {
-              opacity: fadeAnim,
-              transform: [{ translateY: headerSlideAnim }],
-            }
-          ]}
+        {/* Header oscuro elegante */}
+        <LinearGradient
+          colors={['#1a1a1a', '#121212']}
+          style={styles.header}
         >
-          <LinearGradient
-            colors={['#2E86AB', '#A23B72', '#F18F01']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={[styles.gradientHeader, {
-              paddingTop: insets.top + 40, // Status bar + padding para el contenido
-            }]}
+          <Animated.View 
+            style={[
+              styles.headerContent,
+              {
+                opacity: fadeAnim,
+                transform: [{ translateY: headerSlideAnim }],
+              }
+            ]}
           >
-            {/* Decoraciones del header */}
-            <View style={styles.headerDecorations}>
-              <Animated.Text 
-                style={[
-                  styles.decorativeEmoji1,
-                  {
-                    top: insets.top + 20, // Ajustar según el safe area
-                    transform: [
-                      {
-                        rotate: rotateAnim.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: ['0deg', '15deg'],
-                        })
-                      }
-                    ]
-                  }
-                ]}
-              >
-                ☀️
-              </Animated.Text>
-              <Animated.Text 
-                style={[
-                  styles.decorativeEmoji2,
-                  {
-                    top: insets.top + 50, // Ajustar según el safe area
-                    opacity: floatingAnim1.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0.5, 1],
-                    })
-                  }
-                ]}
-              >
-                ⛅
-              </Animated.Text>
-              <Animated.Text 
-                style={[
-                  styles.decorativeEmoji3,
-                  {
-                    bottom: 30, // Mantener fijo desde abajo
-                    transform: [
-                      {
-                        translateY: floatingAnim2.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: [0, -8],
-                        })
-                      }
-                    ]
-                  }
-                ]}
-              >
-                🌤️
-              </Animated.Text>
+            <View style={styles.greetingSection}>
+              <CustomText style={styles.greeting}>
+                {(() => {
+                  const hour = new Date().getHours();
+                  if (hour < 12) return '☀️ Buenos días';
+                  if (hour < 18) return '🌤️ Buenas tardes';
+                  return '🌙 Buenas noches';
+                })()}
+              </CustomText>
+              <CustomText style={styles.userName}>{user?.name || 'Usuario'}</CustomText>
             </View>
+            
+            <TouchableOpacity 
+              style={styles.logoutButton}
+              onPress={handleLogout}
+              activeOpacity={0.7}
+            >
+              <CustomText style={styles.logoutIcon}>🚪</CustomText>
+            </TouchableOpacity>
+          </Animated.View>
+        </LinearGradient>
 
-            {/* Contenido del header con padding para no ser cubierto */}
-            <View style={styles.headerContent}>
-              <Text style={styles.welcomeText}>¡Hola!</Text>
-              <Animated.Text 
-                style={[
-                  styles.titleText,
-                  {
-                    transform: [{ scale: scaleAnim }]
-                  }
-                ]}
-              >
-                Dashboard Clima
-              </Animated.Text>
-              <Text style={styles.subtitleText}>
-                ✨ Información meteorológica en tiempo real ✨
-              </Text>
-            </View>
-          </LinearGradient>
-        </Animated.View>
-
-        {/* Tarjeta del clima principal con efectos */}
+        {/* Tarjeta del clima principal */}
         <Animated.View
           style={{
             opacity: fadeAnim,
@@ -317,332 +276,360 @@ const DashboardScreen = ({ navigation }) => {
           <WeatherCard 
             cityName="Tehuacán"
             style={{ 
-              marginTop: 15,
-              elevation: 20,
-              shadowColor: COLORS.primary,
-              shadowOffset: { width: 0, height: 10 },
-              shadowOpacity: 0.3,
-              shadowRadius: 20,
+              marginTop: 20,
+              marginHorizontal: 20,
             }}
           />
         </Animated.View>
 
-        {/* Tarjeta de información mejorada */}
+        {/* Widget de Favoritos - Tema Oscuro */}
         <Animated.View
           style={{
             opacity: fadeAnim,
             transform: [{ translateY: slideAnim }],
+            marginTop: 24,
+            marginHorizontal: 20,
           }}
         >
           <LinearGradient
-            colors={['rgba(255,255,255,0.95)', 'rgba(255,255,255,0.85)']}
-            style={[GLOBAL_STYLES.card, styles.infoCard]}
+            colors={['#2C2C2C', '#1E1E1E']}
+            style={styles.favoritesCard}
           >
-            <Animated.View 
-              style={[
-                styles.infoHeader,
-                {
-                  transform: [
-                    {
-                      translateX: floatingAnim1.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [0, 5],
-                      })
-                    }
-                  ]
-                }
-              ]}
-            >
-              <Text style={styles.infoTitle}>ℹ️ Información del Sistema</Text>
-            </Animated.View>
-            
-            <View style={styles.infoContent}>
-              <Animated.View 
-                style={[
-                  styles.infoRow,
-                  {
-                    opacity: fadeAnim,
-                    transform: [{ translateX: slideAnim }]
-                  }
-                ]}
+            {/* Header del Widget */}
+            <View style={styles.favoritesHeader}>
+              <View style={styles.favoritesHeaderLeft}>
+                <LinearGradient
+                  colors={['#00BFFF', '#1E90FF']}
+                  style={styles.starBadge}
+                >
+                  <CustomText style={styles.starEmoji}>⭐</CustomText>
+                </LinearGradient>
+                <View style={styles.favoritesTitle}>
+                  <CustomText style={styles.favoritesTitleText}>Mis favoritas</CustomText>
+                  <CustomText style={styles.favoritesSubtitle}>
+                    {favorites.length} {favorites.length === 1 ? 'ciudad' : 'ciudades'}
+                  </CustomText>
+                </View>
+              </View>
+              <TouchableOpacity 
+                onPress={() => navigation.navigate('AddFavorite')}
+                style={styles.addFavoriteButton}
+                activeOpacity={0.7}
               >
-                <Text style={styles.infoEmoji}>🔄</Text>
-                <Text style={styles.infoText}>
-                  Datos actualizados automáticamente cada carga
-                </Text>
-              </Animated.View>
-              
-              <Animated.View 
-                style={[
-                  styles.infoRow,
-                  {
-                    opacity: fadeAnim,
-                    transform: [{ translateX: slideAnim }]
-                  }
-                ]}
-              >
-                <Text style={styles.infoEmoji}>🌐</Text>
-                <Text style={styles.infoText}>
-                  Información en tiempo real desde OpenWeather API
-                </Text>
-              </Animated.View>
-              
-              <Animated.View 
-                style={[
-                  styles.infoRow,
-                  {
-                    opacity: fadeAnim,
-                    transform: [{ translateX: slideAnim }]
-                  }
-                ]}
-              >
-                <Text style={styles.infoEmoji}>🎨</Text>
-                <Text style={styles.infoText}>
-                  Efectos visuales dinámicos según el clima
-                </Text>
-              </Animated.View>
-              
-              <Animated.View 
-                style={[
-                  styles.infoRow,
-                  {
-                    opacity: fadeAnim,
-                    transform: [{ translateX: slideAnim }]
-                  }
-                ]}
-              >
-                <Text style={styles.infoEmoji}>📱</Text>
-                <Text style={styles.infoText}>
-                  Interfaz optimizada con animaciones fluidas
-                </Text>
-              </Animated.View>
+                <CustomText style={styles.addFavoriteIcon}>+</CustomText>
+              </TouchableOpacity>
             </View>
+
+            {/* Contenido del Widget */}
+            {loadingFavorites ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#667eea" />
+                <CustomText style={styles.loadingText}>Cargando...</CustomText>
+              </View>
+            ) : favorites.length === 0 ? (
+              <View style={styles.emptyState}>
+                <View style={styles.emptyIconContainer}>
+                  <CustomText style={styles.emptyIcon}>🌍</CustomText>
+                </View>
+                <CustomText style={styles.emptyTitle}>No tienes favoritas</CustomText>
+                <CustomText style={styles.emptySubtitle}>
+                  Toca el botón + para agregar tu primera ciudad
+                </CustomText>
+              </View>
+            ) : (
+              <View style={styles.favoritesGrid}>
+                {favorites.map((favorite, index) => (
+                  <TouchableOpacity
+                    key={favorite.favoriteId || `favorite-${index}`}
+                    style={styles.favoriteItem}
+                    onPress={() => navigation.navigate('FavoriteDetail', { favorite })}
+                    activeOpacity={0.7}
+                  >
+                    <View 
+                      style={[
+                        styles.favoriteColorBar,
+                        { backgroundColor: getSafeColor(favorite.color) }
+                      ]} 
+                    />
+                    
+                    <View style={styles.favoriteContent}>
+                          <View style={styles.favoriteInfo}>
+                            <CustomText style={styles.favoriteName} numberOfLines={1}>
+                              {favorite.nickname || favorite.cityName}
+                            </CustomText>
+                            <CustomText style={styles.favoriteLocation} numberOfLines={1}>
+                              {favorite.cityName}
+                            </CustomText>
+                          </View>
+                          {favorite.weatherSnapshot?.temp && (
+                            <View style={styles.favoriteWeather}>
+                              <CustomText style={styles.favoriteTemp}>
+                                {Math.round(favorite.weatherSnapshot.temp)}°
+                              </CustomText>
+                              <CustomText style={styles.favoriteEmoji}>
+                                {favorite.weatherSnapshot.description?.includes('clear') ? '☀️' :
+                                 favorite.weatherSnapshot.description?.includes('cloud') ? '☁️' :
+                                 favorite.weatherSnapshot.description?.includes('rain') ? '🌧️' : '🌤️'}
+                              </CustomText>
+                            </View>
+                          )}
+                        </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+
+            {/* Ver todas button */}
+            {favorites.length > 0 && (
+              <TouchableOpacity 
+                style={styles.viewAllContainer}
+                onPress={() => navigation.navigate('Favorites')}
+                activeOpacity={0.7}
+              >
+                <LinearGradient
+                  colors={['#667eea', '#764ba2']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.viewAllButton}
+                >
+                  <CustomText style={styles.viewAllText}>Ver todas</CustomText>
+                  <CustomText style={styles.viewAllIcon}>→</CustomText>
+                </LinearGradient>
+              </TouchableOpacity>
+            )}
           </LinearGradient>
         </Animated.View>
+
       </ScrollView>
-      
-      {/* Botón de cerrar sesión con efectos y safe area */}
-      <Animated.View 
-        style={[
-          styles.logoutContainer,
-          {
-            opacity: fadeAnim,
-            transform: [{ translateY: slideAnim }],
-            paddingBottom: Math.max(insets.bottom, 20), // Mínimo 20px o el safe area del dispositivo
-          }
-        ]}
-      >
-        <LinearGradient
-          colors={[COLORS.error, '#C0392B']}
-          style={styles.logoutGradient}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-        >
-          <CustomButton
-            title="✨ Cerrar Sesión"
-            onPress={handleLogout}
-            style={{ 
-              backgroundColor: 'transparent',
-              elevation: 0,
-              shadowOpacity: 0,
-            }}
-          />
-        </LinearGradient>
-      </Animated.View>
     </SafeAreaView>
   );
 };
 
-const styles = {
-  backgroundEffects: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 0,
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.background, // #121212
   },
 
-  floatingElement1: {
-    position: 'absolute',
-    top: '20%',
-    right: '10%',
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-    backgroundColor: COLORS.primary,
-  },
-
-  floatingElement2: {
-    position: 'absolute',
-    bottom: '25%',
-    left: '5%',
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: COLORS.accent,
-  },
-
-  gradientHeader: {
+  // Header oscuro elegante
+  header: {
     paddingHorizontal: 20,
-    paddingVertical: 40,
-    borderBottomLeftRadius: 35,
-    borderBottomRightRadius: 35,
-    marginBottom: 15,
-    elevation: 15,
-    shadowColor: COLORS.black,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 15,
-    position: 'relative',
-    overflow: 'hidden',
-    marginTop: 0, // Eliminar margin para que llegue hasta arriba
+    paddingTop: 20,
+    paddingBottom: 24,
   },
-
   headerContent: {
-    zIndex: 2,
-    position: 'relative',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
-
-  headerDecorations: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 1,
+  greetingSection: {
+    flex: 1,
   },
-
-  decorativeEmoji1: {
-    position: 'absolute',
-    // top dinámico aplicado en el render
-    right: 30,
-    fontSize: 30,
-    opacity: 0.6,
+  greeting: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: COLORS.textSecondary, // #B3B3B3
+    marginBottom: 4,
   },
-
-  decorativeEmoji2: {
-    position: 'absolute',
-    // top dinámico aplicado en el render
-    left: 40,
-    fontSize: 25,
-  },
-
-  decorativeEmoji3: {
-    position: 'absolute',
-    // bottom fijo desde abajo aplicado en el render
-    right: 60,
-    fontSize: 35,
-    opacity: 0.7,
-  },
-
-  welcomeText: {
-    fontSize: 18,
-    color: COLORS.white,
-    opacity: 0.9,
-    zIndex: 2,
-    textShadowColor: 'rgba(0, 0, 0, 0.3)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 2,
-  },
-
-  titleText: {
+  userName: {
     fontSize: 32,
-    fontWeight: 'bold',
-    color: COLORS.white,
-    marginTop: 8,
-    zIndex: 2,
-    textShadowColor: 'rgba(0, 0, 0, 0.5)',
-    textShadowOffset: { width: 2, height: 2 },
-    textShadowRadius: 4,
+    fontWeight: '700',
+    color: COLORS.textPrimary, // #FFFFFF
+    letterSpacing: -0.5,
+  },
+  logoutButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: COLORS.backgroundElevated, // #2C2C2C
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.border, // #333333
+  },
+  logoutIcon: {
+    fontSize: 24,
   },
 
-  subtitleText: {
-    fontSize: 16,
-    color: COLORS.white,
-    opacity: 0.9,
-    marginTop: 10,
-    zIndex: 2,
-    textShadowColor: 'rgba(0, 0, 0, 0.3)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 2,
-  },
-
-  infoCard: {
-    marginHorizontal: 20,
-    marginTop: 20,
-    borderRadius: 25,
-    padding: 0,
-    elevation: 12,
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
+  // Favoritos Card - Tema Oscuro
+  favoritesCard: {
+    borderRadius: 20,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
-
-  infoHeader: {
-    padding: 25,
-    paddingBottom: 15,
+  favoritesHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
   },
-
-  infoTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: COLORS.primary,
-    textShadowColor: 'rgba(0, 0, 0, 0.1)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 2,
-  },
-
-  infoContent: {
-    paddingHorizontal: 25,
-    paddingBottom: 25,
-  },
-
-  infoRow: {
+  favoritesHeaderLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 15,
-    backgroundColor: 'rgba(46, 134, 171, 0.05)',
-    padding: 15,
-    borderRadius: 15,
-    borderLeftWidth: 4,
-    borderLeftColor: COLORS.primary,
-  },
-
-  infoEmoji: {
-    fontSize: 20,
-    marginRight: 15,
-    width: 30,
-    textAlign: 'center',
-  },
-
-  infoText: {
-    fontSize: 15,
-    color: COLORS.darkGray,
-    lineHeight: 22,
     flex: 1,
+  },
+  starBadge: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  starEmoji: {
+    fontSize: 22,
+  },
+  favoritesTitle: {
+    flex: 1,
+  },
+  favoritesTitleText: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+    marginBottom: 4,
+  },
+  favoritesSubtitle: {
+    fontSize: 14,
     fontWeight: '500',
+    color: COLORS.textSecondary,
+  },
+  addFavoriteButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: COLORS.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  addFavoriteIcon: {
+    color: COLORS.textPrimary,
+    fontSize: 26,
+    fontWeight: '700',
+    marginTop: -2,
   },
 
-  logoutContainer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
+  // Loading & Empty States
+  loadingContainer: {
+    padding: 40,
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 12,
+    color: COLORS.textSecondary,
+    fontSize: 14,
+  },
+  emptyState: {
+    padding: 40,
+    alignItems: 'center',
+  },
+  emptyIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: COLORS.backgroundElevated,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  emptyIcon: {
+    fontSize: 40,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+    marginBottom: 8,
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+
+  // Favorites Grid - Tema Oscuro
+  favoritesGrid: {
     padding: 20,
-    backgroundColor: 'transparent',
+    paddingTop: 12,
+    gap: 12,
+  },
+  favoriteItem: {
+    flexDirection: 'row',
+    backgroundColor: COLORS.backgroundElevated, // #2C2C2C
+    borderRadius: 12,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  favoriteColorBar: {
+    width: 4,
+  },
+  favoriteContent: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+  },
+  favoriteInfo: {
+    flex: 1,
+    marginRight: 12,
+  },
+  favoriteName: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: COLORS.textPrimary, // #FFFFFF
+    marginBottom: 4,
+  },
+  favoriteLocation: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: COLORS.textSecondary, // #B3B3B3
+  },
+  favoriteWeather: {
+    alignItems: 'center',
+  },
+  favoriteTemp: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: COLORS.primary, // #00BFFF
+    marginBottom: 2,
+  },
+  favoriteEmoji: {
+    fontSize: 20,
   },
 
-  logoutGradient: {
-    borderRadius: 15,
-    elevation: 10,
-    shadowColor: COLORS.error,
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
+  // View All Button - Tema Oscuro
+  viewAllContainer: {
+    marginTop: 12,
+    marginHorizontal: 20,
+    marginBottom: 20,
+    borderRadius: 12,
+    overflow: 'hidden',
   },
-};
+  viewAllButton: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 16,
+    gap: 8,
+  },
+  viewAllText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+  },
+  viewAllIcon: {
+    fontSize: 18,
+    color: COLORS.textPrimary,
+    fontWeight: 'bold',
+  },
+});
 
 export default DashboardScreen;

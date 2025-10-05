@@ -122,6 +122,122 @@ class WeatherService {
   }
 
   /**
+   * Obtener clima actual por coordenadas (más preciso)
+   * @param {number} lat - Latitud
+   * @param {number} lon - Longitud
+   * @param {string} cityName - Nombre de la ciudad (opcional, para logging)
+   * @returns {Promise<Object>} Datos del clima
+   */
+  async getCurrentWeatherByCoords(lat, lon, cityName = '') {
+    try {
+      console.log(`🌤️ Obteniendo clima por coordenadas: ${lat}, ${lon} ${cityName ? `(${cityName})` : ''}`);
+      
+      // Verificar si hay API Key configurada
+      if (!API_CONFIGS.OPENWEATHER.API_KEY || 
+          API_CONFIGS.OPENWEATHER.API_KEY === 'API_KEY_NOT_CONFIGURED' ||
+          API_CONFIGS.OPENWEATHER.API_KEY === 'tu_api_key_aqui') {
+        return {
+          success: false,
+          error: {
+            message: 'API Key no configurada. Revisa tu archivo .env',
+            type: 'config',
+            originalError: 'Missing API Key',
+          },
+        };
+      }
+      
+      const response = await this.api.get('/weather', {
+        params: {
+          lat: lat,
+          lon: lon,
+          appid: API_CONFIGS.OPENWEATHER.API_KEY,
+          units: API_CONFIGS.OPENWEATHER.UNITS,
+          lang: API_CONFIGS.OPENWEATHER.LANGUAGE,
+        },
+      });
+
+      const data = response.data;
+      
+      // Formatear los datos para nuestra aplicación
+      const formattedData = {
+        city: data.name,
+        country: data.sys.country,
+        temperature: Math.round(data.main.temp),
+        feelsLike: Math.round(data.main.feels_like),
+        tempMin: Math.round(data.main.temp_min),
+        tempMax: Math.round(data.main.temp_max),
+        humidity: data.main.humidity,
+        pressure: data.main.pressure,
+        description: data.weather[0].description,
+        icon: data.weather[0].icon,
+        windSpeed: data.wind.speed,
+        windDirection: data.wind.deg,
+        clouds: data.clouds.all,
+        visibility: data.visibility,
+        sunrise: data.sys.sunrise,
+        sunset: data.sys.sunset,
+        coordinates: {
+          lat: data.coord.lat,
+          lon: data.coord.lon,
+        },
+        timestamp: data.dt,
+      };
+
+      console.log(`✅ Clima obtenido: ${formattedData.city}, ${formattedData.temperature}°C`);
+
+      return {
+        success: true,
+        data: formattedData,
+      };
+
+    } catch (error) {
+      console.error('❌ Error obteniendo datos del clima por coordenadas:', error);
+      
+      // Manejar diferentes tipos de errores
+      let errorMessage = 'Error desconocido';
+      let errorType = 'unknown';
+
+      if (error.code === 'ENOTFOUND' || error.code === 'NETWORK_ERROR') {
+        errorMessage = 'Sin conexión a internet';
+        errorType = 'network';
+      } else if (error.response) {
+        const status = error.response.status;
+        switch (status) {
+          case 401:
+            errorMessage = 'API Key inválida';
+            errorType = 'auth';
+            break;
+          case 404:
+            errorMessage = 'Ubicación no encontrada';
+            errorType = 'notFound';
+            break;
+          case 429:
+            errorMessage = 'Límite de consultas excedido';
+            errorType = 'rateLimit';
+            break;
+          case 500:
+          case 502:
+          case 503:
+            errorMessage = `Error del servidor (${status})`;
+            errorType = 'server';
+        }
+      } else if (error.code === 'ECONNABORTED') {
+        errorMessage = 'Tiempo de espera agotado';
+        errorType = 'timeout';
+      }
+
+      return {
+        success: false,
+        error: {
+          message: errorMessage,
+          type: errorType,
+          originalError: error.message,
+        },
+      };
+    }
+  }
+
+  /**
    * Obtener el icono del clima desde OpenWeather
    * @param {string} iconCode - Código del icono
    * @param {string} size - Tamaño del icono (@1x, @2x, @4x)
@@ -139,6 +255,82 @@ class WeatherService {
   getWindDirection(degrees) {
     const directions = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
     return directions[Math.round(degrees / 22.5) % 16];
+  }
+
+  /**
+   * Buscar ciudades con Geocoding API (múltiples resultados)
+   * @param {string} cityName - Nombre de la ciudad a buscar
+   * @param {number} limit - Límite de resultados (máx 5)
+   * @returns {Promise<Object>} Lista de ciudades encontradas
+   */
+  async searchCities(cityName, limit = 5) {
+    try {
+      console.log(`🔍 Buscando ciudades: ${cityName}`);
+      
+      if (!cityName || cityName.trim().length < 2) {
+        return {
+          success: false,
+          error: { message: 'Ingresa al menos 2 caracteres' },
+        };
+      }
+
+      // Verificar API Key
+      if (!API_CONFIGS.OPENWEATHER.API_KEY || 
+          API_CONFIGS.OPENWEATHER.API_KEY === 'API_KEY_NOT_CONFIGURED' ||
+          API_CONFIGS.OPENWEATHER.API_KEY === 'tu_api_key_aqui') {
+        return {
+          success: false,
+          error: { message: 'API Key no configurada' },
+        };
+      }
+
+      // Usar Geocoding API de OpenWeather
+      const response = await axios.get('http://api.openweathermap.org/geo/1.0/direct', {
+        params: {
+          q: cityName.trim(),
+          limit: Math.min(limit, 5),
+          appid: API_CONFIGS.OPENWEATHER.API_KEY,
+        },
+      });
+
+      if (!response.data || response.data.length === 0) {
+        return {
+          success: false,
+          error: { message: 'No se encontraron ciudades' },
+        };
+      }
+
+      // Formatear resultados
+      const cities = response.data.map((city) => ({
+        name: city.name,
+        state: city.state || '',
+        country: city.country,
+        lat: city.lat,
+        lon: city.lon,
+        // Crear un label descriptivo
+        label: [city.name, city.state, city.country]
+          .filter(Boolean)
+          .join(', '),
+      }));
+
+      console.log(`✅ ${cities.length} ciudades encontradas`);
+      
+      return {
+        success: true,
+        data: cities,
+      };
+
+    } catch (error) {
+      console.error('❌ Error buscando ciudades:', error);
+      return {
+        success: false,
+        error: {
+          message: error.response?.data?.message || 'Error al buscar ciudades',
+          type: 'network',
+          originalError: error.message,
+        },
+      };
+    }
   }
 
   /**

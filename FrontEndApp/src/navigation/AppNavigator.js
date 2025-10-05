@@ -3,7 +3,15 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Provider } from 'react-redux';
-import { LoginScreen, DashboardScreen, RegisterScreen } from '../screens';
+import { 
+  LoginScreen, 
+  DashboardScreen, 
+  RegisterScreen,
+  FavoritesScreen,
+  AddFavoriteScreen,
+  FavoriteDetailScreen,
+  EditFavoriteScreen
+} from '../screens';
 import { ToastProvider } from '../context/ToastContext';
 import SecurityInitializer from '../components/SecurityInitializer';
 import store from '../context/store';
@@ -51,6 +59,34 @@ const AppNavigator = () => {
             component={DashboardScreen}
             options={{
               headerShown: false, // Ocultamos el header para un look más limpio y moderno
+            }}
+          />
+          <Stack.Screen 
+            name="Favorites" 
+            component={FavoritesScreen}
+            options={{
+              headerShown: false, // Header custom en la pantalla
+            }}
+          />
+          <Stack.Screen 
+            name="AddFavorite" 
+            component={AddFavoriteScreen}
+            options={{
+              headerShown: false, // Header custom en la pantalla
+            }}
+          />
+          <Stack.Screen 
+            name="FavoriteDetail" 
+            component={FavoriteDetailScreen}
+            options={{
+              headerShown: false, // Header custom en la pantalla
+            }}
+          />
+          <Stack.Screen 
+            name="EditFavorite" 
+            component={EditFavoriteScreen}
+            options={{
+              headerShown: false, // Header custom en la pantalla
             }}
           />
         </Stack.Navigator>

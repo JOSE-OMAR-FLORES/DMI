@@ -52,6 +52,7 @@ export const GLOBAL_STYLES = StyleSheet.create({
     fontSize: 16,
     backgroundColor: COLORS.white,
     minHeight: 52,
+    color: COLORS.black,
   },
   title: {
     fontSize: 28,
@@ -70,8 +71,7 @@ export const GLOBAL_STYLES = StyleSheet.create({
   },
   text: {
     fontSize: 16,
-    color: COLORS.black,
+    color: COLORS.darkGray,
     lineHeight: 24,
-    opacity: 0.8,
   }
 });

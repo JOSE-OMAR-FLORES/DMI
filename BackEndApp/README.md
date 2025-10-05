@@ -56,6 +56,8 @@ Antes de ejecutar el proyecto, asegúrate de tener instalado:
    ```bash
    cp .env.example .env
    php artisan key:generate
+   php artisan jwt:secret
+
    ```
 
 4. **Ejecutar migraciones:**
@@ -67,6 +69,9 @@ Antes de ejecutar el proyecto, asegúrate de tener instalado:
    ```bash
    php artisan serve
    ```
+   o
+
+   php artisan serve --host=0.0.0.0
 
 6. **Acceder a la aplicación:**
    ```

@@ -3,7 +3,15 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Provider } from 'react-redux';
-import { LoginScreen, DashboardScreen, RegisterScreen } from '../screens';
+import { 
+  LoginScreen, 
+  DashboardScreen, 
+  RegisterScreen,
+  FavoritesScreen,
+  AddFavoriteScreen,
+  FavoriteDetailScreen,
+  EditFavoriteScreen
+} from '../screens';
 import { ToastProvider } from '../context/ToastContext';
 import SecurityInitializer from '../components/SecurityInitializer';
 import store from '../context/store';
@@ -51,6 +59,62 @@ const AppNavigator = () => {
             component={DashboardScreen}
             options={{
               headerShown: false, // Ocultamos el header para un look más limpio y moderno
+            }}
+          />
+          <Stack.Screen 
+            name="Favorites" 
+            component={FavoritesScreen}
+            options={{
+              title: 'Mis Favoritos',
+              headerStyle: {
+                backgroundColor: COLORS.primary,
+              },
+              headerTintColor: COLORS.white,
+              headerTitleStyle: {
+                fontWeight: 'bold',
+              },
+            }}
+          />
+          <Stack.Screen 
+            name="AddFavorite" 
+            component={AddFavoriteScreen}
+            options={{
+              title: 'Agregar Ciudad',
+              headerStyle: {
+                backgroundColor: COLORS.primary,
+              },
+              headerTintColor: COLORS.white,
+              headerTitleStyle: {
+                fontWeight: 'bold',
+              },
+            }}
+          />
+          <Stack.Screen 
+            name="FavoriteDetail" 
+            component={FavoriteDetailScreen}
+            options={{
+              title: 'Detalle',
+              headerStyle: {
+                backgroundColor: COLORS.primary,
+              },
+              headerTintColor: COLORS.white,
+              headerTitleStyle: {
+                fontWeight: 'bold',
+              },
+            }}
+          />
+          <Stack.Screen 
+            name="EditFavorite" 
+            component={EditFavoriteScreen}
+            options={{
+              title: 'Editar Favorito',
+              headerStyle: {
+                backgroundColor: COLORS.primary,
+              },
+              headerTintColor: COLORS.white,
+              headerTitleStyle: {
+                fontWeight: 'bold',
+              },
             }}
           />
         </Stack.Navigator>

@@ -6,7 +6,7 @@ import { API_BASE_URL, API_TIMEOUT } from '@env';
 
 // Configuración base de la API
 // Usar variables de entorno para la configuración
-const BASE_URL = API_BASE_URL || 'http://127.0.0.1:8000/api';
+const BASE_URL = API_BASE_URL || 'http://192.168.1.92:8000/api/v1';
 const TIMEOUT = 15000; // Usar número fijo en lugar de variable de entorno
 
 class ApiService {

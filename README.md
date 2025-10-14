@@ -1,8 +1,13 @@
-# Estrategia de Versionamiento y Flujo de Trabajo Git
+# Integración de MFA y Zero-Trust con Firebase Auth
 
-## Estrategia GitHub Flow
+Este proyecto implementa autenticación multifactor (MFA) y principios Zero-Trust utilizando Firebase Auth como proveedor principal de autenticación para una aplicación con frontend en React Native y backend en Laravel.
 
-Este proyecto utiliza GitHub Flow como estrategia de ramificación. Es un flujo simple y eficiente que se centra en la rama principal:
+## Estructura del Proyecto
+
+- **FrontEndApp**: Aplicación React Native con Expo
+- **BackEndApp**: API RESTful con Laravel
+
+## Estrategia de Versionamiento y Flujo de Trabajo Git
 
 ### Estructura de Ramas
 
@@ -69,6 +74,41 @@ git push origin feature/nueva-caracteristica
 
 # Actualizar rama con los últimos cambios
 git checkout main
+
+## Características de Seguridad Implementadas
+
+1. **Autenticación Multifactor**
+   - Contraseña + OTP vía SMS
+   - Evaluación adaptativa basada en riesgo
+
+2. **Principios Zero-Trust**
+   - Verificación continua en cada petición
+   - Análisis de contexto de acceso
+   - Tokens con permisos mínimos necesarios
+
+3. **Almacenamiento Seguro**
+   - Frontend: Expo SecureStore
+   - Backend: Tokens JWT firmados
+
+## API Endpoints
+
+### Autenticación
+
+- `POST /api/auth/register` - Registro de usuario
+- `POST /api/auth/login` - Inicio de sesión
+- `POST /api/auth/verify-otp` - Verificación de código OTP
+
+### Gestión MFA
+
+- `POST /api/auth/toggle-mfa` - Activar/desactivar MFA
+- `POST /api/auth/update-phone` - Actualizar número para OTP
+
+## Documentación Adicional
+
+Para más detalles sobre la implementación de MFA y Zero-Trust, consulta:
+
+- [Guía de Implementación MFA y Zero-Trust](docs/MFA_ZERO_TRUST_GUIDE.md) - Detalles técnicos sobre la arquitectura de seguridad
+- [Informe de Seguridad](SECURITY_IMPLEMENTATION_REPORT.md) - Informe completo sobre la implementación
 git pull origin main
 git checkout feature/mi-rama
 git merge main

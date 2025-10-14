@@ -8,7 +8,7 @@ use App\Http\Controllers\Api\SimpleAuthController;
 use App\Http\Controllers\Api\JWTAuthController;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
-use Tymon\JWTAuth\Facades\JWTAuth;
+use Firebase\JWT\JWT;
 
 /*
 |--------------------------------------------------------------------------
@@ -22,8 +22,42 @@ use Tymon\JWTAuth\Facades\JWTAuth;
 */
 
 // Ruta para obtener información del usuario autenticado
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    return $request->user();
+use App\Http\Controllers\MFAController;
+
+/*
+|--------------------------------------------------------------------------
+| API Routes
+|--------------------------------------------------------------------------
+|
+| Here is where you can register API routes for your application. These
+| routes are loaded by the RouteServiceProvider and all of them will
+| be assigned to the "api" middleware group. Make something great!
+|
+*/
+
+// Rutas de autenticación
+use App\Http\Controllers\AuthController as FirebaseAuthController;
+
+Route::prefix('auth')->group(function () {
+    Route::post('register', [FirebaseAuthController::class, 'register']);
+    Route::post('login', [FirebaseAuthController::class, 'login']);
+    Route::post('verify-otp', [FirebaseAuthController::class, 'verifyOTP']);
+    
+    // Rutas protegidas con middleware
+    Route::middleware('firebase.auth')->group(function () {
+        Route::get('me', [FirebaseAuthController::class, 'me']);
+        Route::post('logout', [FirebaseAuthController::class, 'logout']);
+        Route::post('toggle-mfa', [FirebaseAuthController::class, 'toggleMFA']);
+        Route::post('update-phone', [FirebaseAuthController::class, 'updatePhone']);
+    });
+});
+
+// Rutas MFA (Anteriores, mantener para compatibilidad)
+Route::prefix('auth/mfa')->group(function () {
+    Route::post('enroll', [MFAController::class, 'enroll']);
+    Route::post('check', [MFAController::class, 'check']);
+    Route::post('send-otp', [MFAController::class, 'sendOTP']);
+    Route::post('verify-otp', [MFAController::class, 'verifyOTP']);
 });
 
 // Rutas públicas de la API
@@ -63,7 +97,16 @@ Route::prefix('v1')->group(function () {
         try {
             $user = User::where('email', $request->email)->first();
             if ($user && Hash::check($request->password, $user->password)) {
-                $token = JWTAuth::fromUser($user);
+                $payload = [
+                    'sub' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'iat' => time(),
+                    'exp' => time() + 3600 // 1 hora
+                ];
+                
+                $token = JWT::encode($payload, config('jwt.secret'), config('jwt.algo', 'HS256'));
+                
                 return response()->json([
                     'access_token' => $token,
                     'token_type' => 'bearer',

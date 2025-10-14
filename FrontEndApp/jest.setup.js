@@ -1,3 +1,26 @@
+// Mock global de módulos nativos de Expo
+jest.mock('expo-constants', () => ({
+  __esModule: true,
+  default: {
+    installationId: 'test-installation-id',
+    sessionId: 'test-session-id',
+    platform: {
+      ios: {
+        model: 'iPhone',
+      },
+    },
+  },
+}));
+
+jest.mock('expo', () => ({
+  __esModule: true,
+  default: {},
+}));
+
+// Mock de métodos globales que pueden ser problemáticos
+global.__expo = {};
+global.__fbBatchedBridge = {};
+
 beforeAll(() => {
   // Solo mockea si no han sido mockeados aún
   if (!console.log._isMockFunction) {

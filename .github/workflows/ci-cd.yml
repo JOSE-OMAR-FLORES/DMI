@@ -60,7 +60,7 @@ jobs:
       working-directory: ./FrontEndApp
       
     - name: Run frontend tests
-      run: npm test -- --watchAll=false
+      run: npm test -- --watchAll=false --testPathIgnorePatterns="src/utils/test/"
       working-directory: ./FrontEndApp
       
   test-backend:

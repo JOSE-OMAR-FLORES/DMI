@@ -1,12 +1,34 @@
-import auth from '@react-native-firebase/auth';
 import { Alert } from 'react-native';
-import * as SecureStore from 'react-native-secure-store';
+import * as SecureStore from 'expo-secure-store';
+import axios from 'axios';
+import { initializeApp } from 'firebase/app';
+import {
+  getAuth,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut as firebaseSignOut,
+  onAuthStateChanged
+} from 'firebase/auth';
+import { firebaseConfig } from '../config/firebase.config';
+
+// Inicializar Firebase (si no está inicializado)
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+
+const API_BASE = process.env.API_URL || 'http://localhost:8000'; // backend placeholder
 
 export class AuthService {
+  // Registro con email/password (luego el segundo factor se solicita vía backend)
   static async signUp(email, password) {
     try {
-      const userCredential = await auth().createUserWithEmailAndPassword(email, password);
-      await this.enableMFA(userCredential.user);
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      // Notificar al backend para inicializar MFA (opcional)
+      try {
+        await axios.post(`${API_BASE}/api/auth/mfa/enroll`, { uid: userCredential.user.uid, email });
+      } catch (e) {
+        // Backend puede no existir aún; lo ignoramos pero logueamos
+        console.warn('No se pudo notificar al backend para enroll MFA:', e.message);
+      }
       return userCredential;
     } catch (error) {
       console.error('Error en registro:', error);
@@ -14,56 +36,49 @@ export class AuthService {
     }
   }
 
+  // Login con email/password. Si el backend indica MFA requerido, el frontend debe solicitar OTP.
   static async signIn(email, password) {
     try {
-      const userCredential = await auth().signInWithEmailAndPassword(email, password);
-      
-      // Verificar si MFA está habilitado
-      const user = userCredential.user;
-      if (user.multiFactor.enrolledFactors.length === 0) {
-        await this.enableMFA(user);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+
+      // Consultar al backend si requiere segundo factor
+      try {
+        const resp = await axios.post(`${API_BASE}/api/auth/mfa/check`, { uid: userCredential.user.uid });
+        // backend debería devolver { mfaRequired: true/false, methods: ['email','sms'] }
+        return { user: userCredential.user, mfa: resp.data };
+      } catch (e) {
+        // Si el backend no responde, asumimos sin MFA
+        return { user: userCredential.user, mfa: { mfaRequired: false } };
       }
-      
-      return userCredential;
     } catch (error) {
       console.error('Error en login:', error);
       throw error;
     }
   }
 
-  static async enableMFA(user) {
+  // Solicitar OTP vía backend. method: 'email' o 'sms'
+  static async requestOTP(uid, method = 'email') {
     try {
-      // Iniciar proceso MFA
-      const multiFactorSession = await user.multiFactor.getSession();
-      
-      // Enviar código por SMS
-      const phoneAuthProvider = auth.PhoneAuthProvider;
-      const verificationId = await phoneAuthProvider.verifyPhoneNumber(
-        phoneNumber,
-        multiFactorSession
-      );
-      
-      // Guardar verificationId de forma segura
-      await SecureStore.setItemAsync('verificationId', verificationId);
-      
-      return true;
+      const resp = await axios.post(`${API_BASE}/api/auth/mfa/send-otp`, { uid, method });
+      // backend debe enviar el OTP al usuario (email o SMS)
+      return resp.data;
     } catch (error) {
-      console.error('Error habilitando MFA:', error);
+      console.error('Error solicitando OTP:', error);
       throw error;
     }
   }
 
-  static async verifyMFACode(code) {
+  // Verificar el OTP contra el backend. El backend debe devolver un token de sesión (por ejemplo Firebase ID token o JWT propio)
+  static async verifyOTP(uid, code) {
     try {
-      const verificationId = await SecureStore.getItemAsync('verificationId');
-      const credential = auth.PhoneAuthProvider.credential(verificationId, code);
-      
-      const multiFactorAssertion = auth.PhoneMultiFactorGenerator.assertion(credential);
-      await auth().currentUser.multiFactor.enroll(multiFactorAssertion, 'Phone Number');
-      
-      return true;
+      const resp = await axios.post(`${API_BASE}/api/auth/mfa/verify-otp`, { uid, code });
+      const { token } = resp.data;
+      if (token) {
+        await SecureStore.setItemAsync('authToken', token);
+      }
+      return resp.data;
     } catch (error) {
-      console.error('Error verificando MFA:', error);
+      console.error('Error verificando OTP:', error);
       throw error;
     }
   }
@@ -86,9 +101,18 @@ export class AuthService {
     }
   }
 
+  static async getCurrentUser() {
+    return new Promise((resolve) => {
+      const unsub = onAuthStateChanged(auth, (user) => {
+        unsub();
+        resolve(user);
+      });
+    });
+  }
+
   static async signOut() {
     try {
-      await auth().signOut();
+      await firebaseSignOut(auth);
       await SecureStore.deleteItemAsync('authToken');
     } catch (error) {
       console.error('Error en logout:', error);

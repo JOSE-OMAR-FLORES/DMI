@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 jobs:
-  build:
+  build-frontend:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
@@ -17,14 +17,39 @@ jobs:
       with:
         node-version: '16.x'
         
-    - name: Install dependencies
+    - name: Install frontend dependencies
       run: npm install
+      working-directory: ./FrontEndApp
       
-    - name: Build
-      run: npm run build
+    - name: Build frontend
+      run: npm run build --if-present
+      working-directory: ./FrontEndApp
       
-  test:
-    needs: build
+  build-backend:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.1'
+        extensions: mbstring, xml, ctype, iconv, intl, pdo_sqlite
+        
+    - name: Install backend dependencies
+      run: composer install --prefer-dist --no-progress
+      working-directory: ./BackEndApp
+      
+    - name: Copy environment file
+      run: cp .env.example .env
+      working-directory: ./BackEndApp
+      
+    - name: Generate app key
+      run: php artisan key:generate
+      working-directory: ./BackEndApp
+      
+  test-frontend:
+    needs: build-frontend
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
@@ -34,14 +59,48 @@ jobs:
       with:
         node-version: '16.x'
         
-    - name: Install dependencies
+    - name: Install frontend dependencies
       run: npm install
+      working-directory: ./FrontEndApp
       
-    - name: Run tests
-      run: npm test
+    - name: Run frontend tests
+      run: npm test --if-present
+      working-directory: ./FrontEndApp
+      
+  test-backend:
+    needs: build-backend
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.1'
+        extensions: mbstring, xml, ctype, iconv, intl, pdo_sqlite
+        
+    - name: Install backend dependencies
+      run: composer install --prefer-dist --no-progress
+      working-directory: ./BackEndApp
+      
+    - name: Copy environment file
+      run: cp .env.example .env
+      working-directory: ./BackEndApp
+      
+    - name: Generate app key
+      run: php artisan key:generate
+      working-directory: ./BackEndApp
+      
+    - name: Run database migrations
+      run: php artisan migrate --force
+      working-directory: ./BackEndApp
+      
+    - name: Run backend tests
+      run: php artisan test
+      working-directory: ./BackEndApp
       
   deploy-staging:
-    needs: test
+    needs: [test-frontend, test-backend]
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
     steps:
@@ -52,7 +111,7 @@ jobs:
       # Aquí irían los comandos reales de despliegue a staging
       
   deploy-production:
-    needs: test
+    needs: [test-frontend, test-backend]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     steps:

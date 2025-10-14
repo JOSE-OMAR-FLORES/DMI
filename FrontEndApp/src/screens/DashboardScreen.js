@@ -400,6 +400,46 @@ const DashboardScreen = ({ navigation }) => {
           </LinearGradient>
         </Animated.View>
 
+        {/* Botón de configuración MFA */}
+        <Animated.View 
+          style={[
+            {
+              opacity: fadeAnim,
+              marginTop: 20,
+              marginHorizontal: 20,
+            }
+          ]}
+        >
+          <TouchableOpacity
+            onPress={() => navigation.navigate('MFASettings')}
+            activeOpacity={0.8}
+          >
+            <LinearGradient
+              colors={['#6366f1', '#4f46e5']}
+              style={{
+                padding: 16,
+                borderRadius: 16,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <CustomText style={{ fontSize: 24, marginRight: 12 }}>🔐</CustomText>
+                <View>
+                  <CustomText style={{ color: COLORS.white, fontSize: 16, fontWeight: '700' }}>
+                    Configurar MFA
+                  </CustomText>
+                  <CustomText style={{ color: COLORS.white + 'CC', fontSize: 12 }}>
+                    Autenticación Multi-Factor
+                  </CustomText>
+                </View>
+              </View>
+              <CustomText style={{ color: COLORS.white, fontSize: 20 }}>→</CustomText>
+            </LinearGradient>
+          </TouchableOpacity>
+        </Animated.View>
+
       </ScrollView>
     </SafeAreaView>
   );

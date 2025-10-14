@@ -6,13 +6,15 @@ import { useToast } from '../context/ToastContext';
 import { GLOBAL_STYLES } from '../constants/styles';
 import { validateLoginForm } from '../utils/validation';
 import { loginUser, clearError } from '../context/authSlice';
+import mfaService from '../services/mfaService';
 
 const LoginScreen = ({ navigation }) => {
-  const [email, setEmail] = useState(''); // Cambiamos username por email
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   
   const dispatch = useDispatch();
-  const { isLoading, error, isAuthenticated } = useSelector((state) => state.auth);
+  const { error, isAuthenticated } = useSelector((state) => state.auth);
   const { showSuccess, showError, showWarning } = useToast();
 
   // Navegación automática si ya está autenticado
@@ -31,7 +33,7 @@ const LoginScreen = ({ navigation }) => {
   }, [error, showError, dispatch]);
 
   const handleLogin = async () => {
-    // Validación del formulario (adaptamos para usar email)
+    // Validación del formulario
     const validation = validateLoginForm(email, password);
     
     if (!validation.isValid) {
@@ -40,18 +42,36 @@ const LoginScreen = ({ navigation }) => {
       return;
     }
 
+    setIsLoading(true);
+
     try {
-      // Usar Redux thunk para login con JWT
-      const resultAction = await dispatch(loginUser({ email, password }));
+      // Intentar login con soporte MFA
+      const result = await mfaService.login(email, password);
       
-      if (loginUser.fulfilled.match(resultAction)) {
-        // Éxito - el useEffect se encargará de la navegación
-        showSuccess('¡Bienvenido! Iniciando sesión...', 2000);
+      if (result.success) {
+        if (result.requiresMFA) {
+          // Usuario tiene MFA habilitado, navegar a pantalla de verificación
+          showSuccess('📧 Código de verificación enviado a tu email');
+          navigation.navigate('MFAVerification', { 
+            email,
+            userId: result.userId 
+          });
+        } else {
+          // Login exitoso sin MFA
+          showSuccess('¡Bienvenido!');
+          
+          // Actualizar Redux state si es necesario
+          dispatch(loginUser.fulfilled(result));
+          
+          // La navegación se hará automáticamente por el useEffect
+        }
+      } else {
+        showError(result.error || 'Error al iniciar sesión');
       }
-      // Los errores se manejan en el useEffect de arriba
-      
     } catch (error) {
       showError('Error de conexión. Verifica tu internet.');
+    } finally {
+      setIsLoading(false);
     }
   };
 

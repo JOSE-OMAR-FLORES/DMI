@@ -75,3 +75,6 @@ export const GLOBAL_STYLES = StyleSheet.create({
     lineHeight: 24,
   }
 });
+
+// Exportar también como STYLES para compatibilidad
+export const STYLES = GLOBAL_STYLES;

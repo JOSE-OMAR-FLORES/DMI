@@ -6,6 +6,9 @@ use App\Http\Controllers\Api\ApiController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\SimpleAuthController;
 use App\Http\Controllers\Api\JWTAuthController;
+use App\Http\Controllers\FirebaseAuthController;
+use App\Http\Controllers\FirebaseMFAController;
+use App\Http\Controllers\AuthMFAController;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Tymon\JWTAuth\Facades\JWTAuth;
@@ -86,6 +89,81 @@ Route::prefix('v1')->group(function () {
         Route::post('/login', [JWTAuthController::class, 'login']);
         Route::post('/logout', [JWTAuthController::class, 'logout']);
         Route::get('/profile', [JWTAuthController::class, 'profile']);
+    });
+
+    // Rutas de Firebase Authentication
+    Route::group(['prefix' => 'firebase'], function () {
+        // Verificar token de Firebase
+        Route::post('/verify-token', [FirebaseAuthController::class, 'verifyToken']);
+        
+        // Obtener información de usuario
+        Route::post('/get-user', [FirebaseAuthController::class, 'getUser']);
+        
+        // Crear token personalizado
+        Route::post('/create-custom-token', [FirebaseAuthController::class, 'createCustomToken']);
+        
+        // Enviar notificación push
+        Route::post('/send-notification', [FirebaseAuthController::class, 'sendNotification']);
+
+        // Rutas de MFA (Multi-Factor Authentication)
+        Route::group(['prefix' => 'mfa'], function () {
+            // Habilitar MFA para un usuario
+            Route::post('/enable', [FirebaseMFAController::class, 'enableMFA']);
+            
+            // Verificar estado de MFA
+            Route::post('/check-status', [FirebaseMFAController::class, 'checkMFAStatus']);
+            
+            // Establecer claim de MFA
+            Route::post('/set-claim', [FirebaseMFAController::class, 'setMFAClaim']);
+            
+            // Enviar código de verificación
+            Route::post('/send-code', [FirebaseMFAController::class, 'sendVerificationCode']);
+            
+            // Verificar código MFA
+            Route::post('/verify-code', [FirebaseMFAController::class, 'verifyCode']);
+            
+            // Generar códigos de respaldo
+            Route::post('/generate-backup-codes', [FirebaseMFAController::class, 'generateBackupCodes']);
+            
+            // Verificar código de respaldo
+            Route::post('/verify-backup-code', [FirebaseMFAController::class, 'verifyBackupCode']);
+            
+            // Deshabilitar MFA
+            Route::post('/disable', [FirebaseMFAController::class, 'disableMFA']);
+            
+            // Validar sesión MFA
+            Route::post('/validate-session', [FirebaseMFAController::class, 'validateSession']);
+        });
+    });
+
+    // Rutas de Autenticación con MFA (Laravel + JWT)
+    Route::group(['prefix' => 'auth-mfa'], function () {
+        // Login con soporte MFA
+        Route::post('/login', [AuthMFAController::class, 'login']);
+        
+        // Verificar código MFA
+        Route::post('/verify-mfa', [AuthMFAController::class, 'verifyMFA']);
+        
+        // Verificar código de respaldo
+        Route::post('/verify-backup-code', [AuthMFAController::class, 'verifyBackupCode']);
+        
+        // Reenviar código
+        Route::post('/resend-code', [AuthMFAController::class, 'resendCode']);
+        
+        // Rutas protegidas (requieren autenticación JWT)
+        Route::middleware('auth:api')->group(function () {
+            // Habilitar MFA
+            Route::post('/enable-mfa', [AuthMFAController::class, 'enableMFA']);
+            
+            // Deshabilitar MFA
+            Route::post('/disable-mfa', [AuthMFAController::class, 'disableMFA']);
+            
+            // Regenerar códigos de respaldo
+            Route::post('/regenerate-backup-codes', [AuthMFAController::class, 'regenerateBackupCodes']);
+            
+            // Verificar estado de MFA
+            Route::get('/mfa-status', [AuthMFAController::class, 'checkMFAStatus']);
+        });
     });
     
 });

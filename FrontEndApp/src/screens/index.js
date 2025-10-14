@@ -5,6 +5,8 @@ import FavoritesScreen from './FavoritesScreen';
 import AddFavoriteScreen from './AddFavoriteScreen';
 import FavoriteDetailScreen from './FavoriteDetailScreen';
 import EditFavoriteScreen from './EditFavoriteScreen';
+import MFAVerificationScreen from './MFAVerificationScreen';
+import MFASettingsScreen from './MfaSettingsScreen';
 
 export {
   LoginScreen,
@@ -13,5 +15,7 @@ export {
   FavoritesScreen,
   AddFavoriteScreen,
   FavoriteDetailScreen,
-  EditFavoriteScreen
+  EditFavoriteScreen,
+  MFAVerificationScreen,
+  MFASettingsScreen
 };

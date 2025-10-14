@@ -10,7 +10,9 @@ import {
   FavoritesScreen,
   AddFavoriteScreen,
   FavoriteDetailScreen,
-  EditFavoriteScreen
+  EditFavoriteScreen,
+  MFAVerificationScreen,
+  MFASettingsScreen
 } from '../screens';
 import { ToastProvider } from '../context/ToastContext';
 import SecurityInitializer from '../components/SecurityInitializer';
@@ -87,6 +89,28 @@ const AppNavigator = () => {
             component={EditFavoriteScreen}
             options={{
               headerShown: false, // Header custom en la pantalla
+            }}
+          />
+          <Stack.Screen 
+            name="MFAVerification" 
+            component={MFAVerificationScreen}
+            options={{
+              title: 'Verificación MFA',
+              headerShown: false,
+            }}
+          />
+          <Stack.Screen 
+            name="MFASettings" 
+            component={MFASettingsScreen}
+            options={{
+              title: 'Configuración MFA',
+              headerStyle: {
+                backgroundColor: '#6366f1',
+              },
+              headerTintColor: COLORS.white,
+              headerTitleStyle: {
+                fontWeight: 'bold',
+              },
             }}
           />
         </Stack.Navigator>

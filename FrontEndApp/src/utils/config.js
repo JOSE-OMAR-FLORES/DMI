@@ -3,12 +3,19 @@ import {
   OPENWEATHER_API_KEY, 
   OPENWEATHER_BASE_URL, 
   OPENWEATHER_DEFAULT_CITY, 
-  API_TIMEOUT 
+  API_TIMEOUT,
+  API_BASE_URL
 } from '@env';
 
 // Variables de entorno cargadas correctamente
 
 export const API_CONFIGS = {
+  // Backend Laravel API Configuration
+  BACKEND: {
+    BASE_URL: API_BASE_URL || 'http://192.168.1.73:8000/api/v1',
+    TIMEOUT: parseInt(API_TIMEOUT) || 15000, // 15 segundos
+  },
+  
   // OpenWeather API Configuration
   OPENWEATHER: {
     BASE_URL: OPENWEATHER_BASE_URL || 'https://api.openweathermap.org/data/2.5',

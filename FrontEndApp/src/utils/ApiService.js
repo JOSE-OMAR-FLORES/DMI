@@ -2,23 +2,20 @@
 import axios from 'axios';
 import AuthStorage from './AuthStorage';
 import SecureAuthStorage from './SecureAuthStorage';
-import { API_BASE_URL, API_TIMEOUT } from '@env';
+import { API_CONFIGS } from './config';
 
 // Configuración base de la API
-// Usar variables de entorno para la configuración
-const BASE_URL = API_BASE_URL || 'http://10.0.2.2:8000/api/v1';
-const TIMEOUT = 15000; // Usar número fijo en lugar de variable de entorno
+// Usar tu IP real para que el móvil pueda conectarse
+const API_BASE_URL = API_CONFIGS.BACKEND.BASE_URL;
 
 class ApiService {
   constructor() {
     console.log('🔧 ApiService Constructor:');
-    console.log('  - BASE_URL:', BASE_URL);
-    console.log('  - TIMEOUT:', TIMEOUT, 'type:', typeof TIMEOUT);
-    console.log('  - API_BASE_URL from env:', API_BASE_URL);
+    console.log('  - API_BASE_URL:', API_BASE_URL);
     
     // Crear instancia de axios
     this.api = axios.create({
-      baseURL: BASE_URL,
+      baseURL: API_BASE_URL,
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -96,25 +93,14 @@ class ApiService {
       });
       
       if (response.data.access_token) {
-        // 🔒 Almacenamiento seguro cifrado con fallback
-        const secureSuccess = await SecureAuthStorage.saveToken(response.data.access_token);
-        if (!secureSuccess) {
-          console.warn('⚠️ Fallback a almacenamiento básico para token');
-          await AuthStorage.saveToken(response.data.access_token);
-        }
+        // 🔒 Usar almacenamiento básico por ahora (más estable en desarrollo)
+        await AuthStorage.saveToken(response.data.access_token);
         
-        // 🔒 Guardar datos de usuario de forma segura
-        const userSuccess = await SecureAuthStorage.saveUser(response.data.user);
-        if (!userSuccess) {
-          console.warn('⚠️ Fallback a almacenamiento básico para usuario');
+        if (response.data.user) {
           await AuthStorage.saveUser(response.data.user);
         }
         
-        // 🔒 Guardar datos de sesión cifrados
-        await SecureAuthStorage.saveSession({
-          deviceInfo: 'React Native App',
-          sessionId: `reg_${Date.now()}`
-        });
+        console.log('✅ Registro exitoso - Token y usuario guardados');
       }
       
       return {
@@ -140,25 +126,14 @@ class ApiService {
       });
       
       if (response.data.access_token) {
-        // 🔒 Almacenamiento seguro cifrado con fallback
-        const secureSuccess = await SecureAuthStorage.saveToken(response.data.access_token);
-        if (!secureSuccess) {
-          console.warn('⚠️ Fallback a almacenamiento básico para token');
-          await AuthStorage.saveToken(response.data.access_token);
-        }
+        // 🔒 Usar almacenamiento básico por ahora (más estable en desarrollo)
+        await AuthStorage.saveToken(response.data.access_token);
         
-        // 🔒 Guardar datos de usuario de forma segura
-        const userSuccess = await SecureAuthStorage.saveUser(response.data.user);
-        if (!userSuccess) {
-          console.warn('⚠️ Fallback a almacenamiento básico para usuario');
+        if (response.data.user) {
           await AuthStorage.saveUser(response.data.user);
         }
         
-        // 🔒 Guardar datos de sesión cifrados
-        await SecureAuthStorage.saveSession({
-          deviceInfo: 'React Native App',
-          sessionId: `login_${Date.now()}`
-        });
+        console.log('✅ Login exitoso - Token y usuario guardados');
       }
       
       return {

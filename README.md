@@ -103,12 +103,31 @@ git checkout main
 - `POST /api/auth/toggle-mfa` - Activar/desactivar MFA
 - `POST /api/auth/update-phone` - Actualizar número para OTP
 
+## Configuración de Firebase Auth
+
+Para configurar el proyecto con Firebase Auth, sigue estos pasos:
+
+1. **Crear proyecto en Firebase Console**:
+   - Ve a [Firebase Console](https://console.firebase.google.com/)
+   - Crea un nuevo proyecto o usa uno existente
+   - Habilita Authentication con Email/Password y SMS (para OTP)
+
+2. **Configuración del Frontend**:
+   - Copia las credenciales de Firebase en `FrontEndApp/src/config/firebase.config.js`
+   - Establece las variables de entorno necesarias en `FrontEndApp/.env`
+
+3. **Configuración del Backend**:
+   - Copia el archivo de configuración de Firebase Admin en `BackEndApp/config/firebase.php`
+   - Ejecuta migraciones para agregar campos MFA: `php artisan migrate`
+
 ## Documentación Adicional
 
 Para más detalles sobre la implementación de MFA y Zero-Trust, consulta:
 
 - [Guía de Implementación MFA y Zero-Trust](docs/MFA_ZERO_TRUST_GUIDE.md) - Detalles técnicos sobre la arquitectura de seguridad
 - [Informe de Seguridad](SECURITY_IMPLEMENTATION_REPORT.md) - Informe completo sobre la implementación
+```
+
 git pull origin main
 git checkout feature/mi-rama
 git merge main

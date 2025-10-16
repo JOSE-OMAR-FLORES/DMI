@@ -153,6 +153,30 @@ const DashboardScreen = ({ navigation }) => {
             </TouchableOpacity>
           </Animated.View>
 
+          {/* Botón GDPR Settings - Temporalmente comentado
+          <Animated.View
+            style={[
+              { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }
+            ]}
+          >
+            <TouchableOpacity
+              style={styles.actionCard}
+              onPress={() => navigation.navigate('GDPRSettings')}
+              activeOpacity={0.7}
+            >
+              <View style={styles.actionIcon}>
+                <CustomText style={styles.actionEmoji}>⚖️</CustomText>
+              </View>
+              <CustomText style={styles.actionTitle}>
+                Protección de Datos (GDPR)
+              </CustomText>
+              <CustomText style={styles.actionDescription}>
+                Gestiona tus derechos sobre datos personales
+              </CustomText>
+            </TouchableOpacity>
+          </Animated.View>
+          */}
+
           <Animated.View
             style={[
               styles.logoutContainer,

@@ -151,6 +151,20 @@ const DashboardScreen = ({ navigation }) => {
                 Configura autenticación de dos factores
               </CustomText>
             </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.actionCard}
+              onPress={() => navigation.navigate('ConsentManagement')}
+              activeOpacity={0.7}
+            >
+              <View style={styles.actionIconContainer}>
+                <CustomText style={styles.actionIcon}>🔒</CustomText>
+              </View>
+              <CustomText style={styles.actionTitle}>Privacidad</CustomText>
+              <CustomText style={styles.actionDescription}>
+                Gestiona tus preferencias de privacidad
+              </CustomText>
+            </TouchableOpacity>
           </Animated.View>
 
           {/* Botón GDPR Settings - Temporalmente comentado

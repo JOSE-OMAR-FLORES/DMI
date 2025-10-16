@@ -181,3 +181,23 @@ Route::middleware('auth:api')->group(function () {
     // RBAC: admin, user, guest pueden acceder
     Route::apiResource('todos', TodoController::class)->middleware('role:admin,user,guest');
 });
+
+// ========================================================
+// Privacy & Compliance (GDPR, CCPA/CPRA)
+// ========================================================
+Route::middleware('auth:api')->group(function () {
+    Route::prefix('privacy')->group(function () {
+        // Gestión de Consentimientos
+        Route::post('/consent', [App\Http\Controllers\PrivacyController::class, 'storeConsent']);
+        Route::get('/consent', [App\Http\Controllers\PrivacyController::class, 'getConsents']);
+        Route::get('/consent/history', [App\Http\Controllers\PrivacyController::class, 'getConsentHistory']);
+        
+        // Derechos GDPR
+        Route::get('/data', [App\Http\Controllers\PrivacyController::class, 'getUserData']); // Art. 15 - Acceso
+        Route::get('/export', [App\Http\Controllers\PrivacyController::class, 'exportUserData']); // Art. 20 - Portabilidad
+        Route::delete('/data', [App\Http\Controllers\PrivacyController::class, 'deleteUserData']); // Art. 17 - Supresión
+        
+        // CCPA/CPRA
+        Route::post('/do-not-sell', [App\Http\Controllers\PrivacyController::class, 'doNotSell']); // CCPA §1798.120
+    });
+});

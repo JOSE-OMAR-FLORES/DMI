@@ -12,6 +12,9 @@ import {
   MfaSettingsScreen
 } from '../screens';
 // import GDPRSettingsScreen from '../screens/GDPRSettingsScreen'; // Temporalmente comentado
+import ConsentDialogScreen from '../screens/ConsentDialogScreen';
+import PrivacyPolicyScreen from '../screens/PrivacyPolicyScreen';
+import ConsentManagementScreen from '../screens/ConsentManagementScreen';
 import { ToastProvider } from '../context/ToastContext';
 import SecurityInitializer from '../components/SecurityInitializer';
 import store from '../context/store';
@@ -89,6 +92,48 @@ const AppNavigator = () => {
             options={{
               title: 'TODO List',
               headerShown: false,
+            }}
+          />
+          <Stack.Screen 
+            name="ConsentDialog" 
+            component={ConsentDialogScreen}
+            options={{
+              title: 'Privacidad y Consentimientos',
+              headerStyle: {
+                backgroundColor: '#2196F3',
+              },
+              headerTintColor: COLORS.white,
+              headerTitleStyle: {
+                fontWeight: 'bold',
+              },
+            }}
+          />
+          <Stack.Screen 
+            name="PrivacyPolicy" 
+            component={PrivacyPolicyScreen}
+            options={{
+              title: 'Política de Privacidad',
+              headerStyle: {
+                backgroundColor: '#2196F3',
+              },
+              headerTintColor: COLORS.white,
+              headerTitleStyle: {
+                fontWeight: 'bold',
+              },
+            }}
+          />
+          <Stack.Screen 
+            name="ConsentManagement" 
+            component={ConsentManagementScreen}
+            options={{
+              title: 'Gestión de Privacidad',
+              headerStyle: {
+                backgroundColor: '#2196F3',
+              },
+              headerTintColor: COLORS.white,
+              headerTitleStyle: {
+                fontWeight: 'bold',
+              },
             }}
           />
           {/* GDPR Settings Screen - Temporalmente comentado hasta resolver dependencias

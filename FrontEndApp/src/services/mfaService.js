@@ -83,15 +83,36 @@ class MFAService {
    */
   async verifyMFACode(userId, code) {
     try {
+      console.log('📤 Enviando verificación MFA:', { userId, code });
+      
       const response = await this.api.post('/verify-mfa', {
         user_id: userId,
         code: code.toString()
       });
 
+      console.log('📥 Respuesta MFA completa:', JSON.stringify(response.data, null, 2));
+
       // Guardar token después de verificación exitosa
       if (response.data.access_token) {
-        await AuthStorage.saveToken(response.data.access_token);
-        await AuthStorage.saveUser(response.data.user);
+        console.log('💾 Intentando guardar token...');
+        const tokenSaved = await AuthStorage.saveToken(response.data.access_token);
+        console.log('✅ Token guardado:', tokenSaved);
+        
+        if (response.data.user) {
+          console.log('💾 Intentando guardar usuario...');
+          const userSaved = await AuthStorage.saveUser(response.data.user);
+          console.log('✅ Usuario guardado:', userSaved, response.data.user.name);
+        } else {
+          console.log('⚠️ No hay usuario en la respuesta');
+        }
+        
+        // Verificar que se guardó correctamente
+        const tokenCheck = await AuthStorage.getToken();
+        const userCheck = await AuthStorage.getUser();
+        console.log('🔍 Verificación - Token existe:', !!tokenCheck);
+        console.log('🔍 Verificación - Usuario existe:', !!userCheck);
+      } else {
+        console.log('❌ No hay access_token en la respuesta');
       }
 
       return {
@@ -101,6 +122,7 @@ class MFAService {
         message: 'Código verificado correctamente'
       };
     } catch (error) {
+      console.log('❌ Error MFA:', error.response?.data || error.message);
       return {
         success: false,
         error: error.response?.data?.message || 'Código inválido o expirado',
@@ -231,11 +253,14 @@ class MFAService {
     try {
       const response = await this.api.get('/mfa-status');
 
+      // El backend devuelve los datos dentro de response.data.data
+      const data = response.data.data || response.data;
+
       return {
         success: true,
-        mfaEnabled: response.data.mfa_enabled,
-        mfaEnabledAt: response.data.mfa_enabled_at,
-        hasBackupCodes: response.data.has_backup_codes
+        mfaEnabled: data.mfa_enabled || false,
+        mfaEnabledAt: data.mfa_enabled_at || null,
+        hasBackupCodes: data.has_backup_codes || false
       };
     } catch (error) {
       return {

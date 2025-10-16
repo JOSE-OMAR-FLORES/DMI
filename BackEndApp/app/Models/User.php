@@ -22,6 +22,7 @@ class User extends Authenticatable implements JWTSubject
         'name',
         'email',
         'password',
+        'role',
     ];
 
     /**
@@ -64,6 +65,40 @@ class User extends Authenticatable implements JWTSubject
      */
     public function getJWTCustomClaims()
     {
-        return [];
+        return [
+            'role' => $this->role,
+        ];
+    }
+
+    /**
+     * Relación con TODOs
+     */
+    public function todos()
+    {
+        return $this->hasMany(Todo::class);
+    }
+
+    /**
+     * Verificar si el usuario es admin
+     */
+    public function isAdmin()
+    {
+        return $this->role === 'admin';
+    }
+
+    /**
+     * Verificar si el usuario es user
+     */
+    public function isUser()
+    {
+        return $this->role === 'user';
+    }
+
+    /**
+     * Verificar si el usuario es guest
+     */
+    public function isGuest()
+    {
+        return $this->role === 'guest';
     }
 }

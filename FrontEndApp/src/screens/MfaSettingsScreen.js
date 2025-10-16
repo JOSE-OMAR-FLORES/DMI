@@ -14,6 +14,7 @@ import { useToast } from '../context/ToastContext';
 import { COLORS } from '../constants/colors';
 import { GLOBAL_STYLES } from '../constants/styles';
 import mfaService from '../services/mfaService';
+import AuthStorage from '../utils/AuthStorage';
 import * as Clipboard from 'expo-clipboard';
 
 const MFASettingsScreen = ({ navigation }) => {
@@ -33,15 +34,23 @@ const MFASettingsScreen = ({ navigation }) => {
   const loadMFAStatus = async () => {
     setIsLoading(true);
     try {
-      const result = await mfaService.getMFAStatus();
+      console.log('🔍 Cargando estado MFA...');
+      const result = await mfaService.getMFAStatus(); 
+      console.log('📊 Resultado getMFAStatus:', result);
       
       if (result.success) {
         setMfaEnabled(result.mfaEnabled);
         setMfaEnabledAt(result.mfaEnabledAt);
+        console.log('✅ Estado MFA cargado:', { 
+          mfaEnabled: result.mfaEnabled, 
+          mfaEnabledAt: result.mfaEnabledAt 
+        });
       } else {
+        console.log('❌ Error al cargar MFA:', result.error);
         showError('Error al cargar estado de MFA');
       }
     } catch (error) {
+      console.log('❌ Excepción al cargar MFA:', error);
       showError('Error de conexión');
     } finally {
       setIsLoading(false);

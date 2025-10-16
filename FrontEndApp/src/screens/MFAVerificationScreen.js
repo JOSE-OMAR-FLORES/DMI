@@ -8,14 +8,19 @@ import {
   Platform,
   ActivityIndicator
 } from 'react-native';
+import { useDispatch } from 'react-redux';
 import { CustomButton, LoadingSpinner } from '../components';
 import { useToast } from '../context/ToastContext';
 import { COLORS } from '../constants/colors';
 import { GLOBAL_STYLES } from '../constants/styles';
+import { checkAuthStatus } from '../context/authSlice';
 import mfaService from '../services/mfaService';
 
 const MFAVerificationScreen = ({ route, navigation }) => {
   const { email, userId } = route.params;
+  const dispatch = useDispatch();
+  
+  console.log('🎬 MFAVerificationScreen montado:', { email, userId });
   
   const [code, setCode] = useState(['', '', '', '', '', '']);
   const [isVerifying, setIsVerifying] = useState(false);
@@ -96,6 +101,8 @@ const MFAVerificationScreen = ({ route, navigation }) => {
   const handleVerify = async (codeToVerify = null) => {
     const finalCode = codeToVerify || code.join('');
     
+    console.log('🔐 handleVerify iniciado:', { userId, finalCode, email });
+    
     if (finalCode.length !== 6) {
       showError('Ingresa el código de 6 dígitos');
       return;
@@ -104,18 +111,26 @@ const MFAVerificationScreen = ({ route, navigation }) => {
     setIsVerifying(true);
 
     try {
+      console.log('🚀 Llamando a mfaService.verifyMFACode...');
       const result = await mfaService.verifyMFACode(userId, finalCode);
+      console.log('📨 Resultado de verificación:', result);
 
       if (result.success) {
         showSuccess('✅ Verificación exitosa');
         
-        // Navegar al Dashboard después de 1 segundo
+        // Actualizar el estado de Redux
+        console.log('🔄 Actualizando estado de autenticación...');
+        await dispatch(checkAuthStatus());
+        
+        console.log('✅ Estado actualizado, navegando al Dashboard...');
+        
+        // Navegar al Dashboard después de actualizar el estado
         setTimeout(() => {
           navigation.reset({
             index: 0,
             routes: [{ name: 'Dashboard' }],
           });
-        }, 1000);
+        }, 1500);
       } else {
         if (result.blocked) {
           showError('❌ Cuenta bloqueada por seguridad. Usa un código de respaldo o contacta soporte.');

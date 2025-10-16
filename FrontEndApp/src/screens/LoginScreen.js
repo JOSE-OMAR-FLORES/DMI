@@ -7,6 +7,7 @@ import { GLOBAL_STYLES } from '../constants/styles';
 import { validateLoginForm } from '../utils/validation';
 import { loginUser, clearError } from '../context/authSlice';
 import mfaService from '../services/mfaService';
+import AuthStorage from '../utils/AuthStorage';
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
@@ -18,11 +19,12 @@ const LoginScreen = ({ navigation }) => {
   const { showSuccess, showError, showWarning } = useToast();
 
   // Navegación automática si ya está autenticado
-  React.useEffect(() => {
-    if (isAuthenticated) {
-      navigation.navigate('Dashboard');
-    }
-  }, [isAuthenticated, navigation]);
+  // DESHABILITADO - La navegación se maneja manualmente después del login/MFA
+  // React.useEffect(() => {
+  //   if (isAuthenticated) {
+  //     navigation.navigate('Dashboard');
+  //   }
+  // }, [isAuthenticated, navigation]);
 
   // Mostrar errores del Redux
   React.useEffect(() => {
@@ -45,6 +47,10 @@ const LoginScreen = ({ navigation }) => {
     setIsLoading(true);
 
     try {
+      // Limpiar sesión anterior para evitar conflictos
+      await AuthStorage.clearSession();
+      console.log('🧹 Sesión anterior limpiada antes de login');
+      
       // Intentar login con soporte MFA
       const result = await mfaService.login(email, password);
       
@@ -60,10 +66,11 @@ const LoginScreen = ({ navigation }) => {
           // Login exitoso sin MFA
           showSuccess('¡Bienvenido!');
           
-          // Actualizar Redux state si es necesario
-          dispatch(loginUser.fulfilled(result));
-          
-          // La navegación se hará automáticamente por el useEffect
+          // Navegar manualmente al Dashboard
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'Dashboard' }],
+          });
         }
       } else {
         showError(result.error || 'Error al iniciar sesión');

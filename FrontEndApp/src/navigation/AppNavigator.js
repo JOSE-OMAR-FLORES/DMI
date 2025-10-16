@@ -11,7 +11,7 @@ import {
   MFAVerificationScreen,
   MfaSettingsScreen
 } from '../screens';
-import GDPRSettingsScreen from '../screens/GDPRSettingsScreen';
+// import GDPRSettingsScreen from '../screens/GDPRSettingsScreen'; // Temporalmente comentado
 import { ToastProvider } from '../context/ToastContext';
 import SecurityInitializer from '../components/SecurityInitializer';
 import store from '../context/store';
@@ -91,6 +91,7 @@ const AppNavigator = () => {
               headerShown: false,
             }}
           />
+          {/* GDPR Settings Screen - Temporalmente comentado hasta resolver dependencias
           <Stack.Screen 
             name="GDPRSettings" 
             component={GDPRSettingsScreen}
@@ -105,6 +106,7 @@ const AppNavigator = () => {
               },
             }}
           />
+          */}
         </Stack.Navigator>
         </NavigationContainer>
         </ToastProvider>

@@ -153,7 +153,7 @@ const DashboardScreen = ({ navigation }) => {
             </TouchableOpacity>
           </Animated.View>
 
-          {/* Botón GDPR Settings */}
+          {/* Botón GDPR Settings - Temporalmente comentado
           <Animated.View
             style={[
               { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }
@@ -175,6 +175,7 @@ const DashboardScreen = ({ navigation }) => {
               </CustomText>
             </TouchableOpacity>
           </Animated.View>
+          */}
 
           <Animated.View
             style={[

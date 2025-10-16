@@ -7,12 +7,9 @@ import {
   LoginScreen, 
   DashboardScreen, 
   RegisterScreen,
-  FavoritesScreen,
-  AddFavoriteScreen,
-  FavoriteDetailScreen,
-  EditFavoriteScreen,
+  TodoListScreen,
   MFAVerificationScreen,
-  MFASettingsScreen
+  MfaSettingsScreen
 } from '../screens';
 import { ToastProvider } from '../context/ToastContext';
 import SecurityInitializer from '../components/SecurityInitializer';
@@ -64,34 +61,6 @@ const AppNavigator = () => {
             }}
           />
           <Stack.Screen 
-            name="Favorites" 
-            component={FavoritesScreen}
-            options={{
-              headerShown: false, // Header custom en la pantalla
-            }}
-          />
-          <Stack.Screen 
-            name="AddFavorite" 
-            component={AddFavoriteScreen}
-            options={{
-              headerShown: false, // Header custom en la pantalla
-            }}
-          />
-          <Stack.Screen 
-            name="FavoriteDetail" 
-            component={FavoriteDetailScreen}
-            options={{
-              headerShown: false, // Header custom en la pantalla
-            }}
-          />
-          <Stack.Screen 
-            name="EditFavorite" 
-            component={EditFavoriteScreen}
-            options={{
-              headerShown: false, // Header custom en la pantalla
-            }}
-          />
-          <Stack.Screen 
             name="MFAVerification" 
             component={MFAVerificationScreen}
             options={{
@@ -100,8 +69,8 @@ const AppNavigator = () => {
             }}
           />
           <Stack.Screen 
-            name="MFASettings" 
-            component={MFASettingsScreen}
+            name="MfaSettings" 
+            component={MfaSettingsScreen}
             options={{
               title: 'Configuración MFA',
               headerStyle: {
@@ -111,6 +80,14 @@ const AppNavigator = () => {
               headerTitleStyle: {
                 fontWeight: 'bold',
               },
+            }}
+          />
+          <Stack.Screen 
+            name="TodoList" 
+            component={TodoListScreen}
+            options={{
+              title: 'TODO List',
+              headerShown: false,
             }}
           />
         </Stack.Navigator>

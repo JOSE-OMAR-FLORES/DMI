@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\JWTAuthController;
 use App\Http\Controllers\FirebaseAuthController;
 use App\Http\Controllers\FirebaseMFAController;
 use App\Http\Controllers\AuthMFAController;
+use App\Http\Controllers\TodoController;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Tymon\JWTAuth\Facades\JWTAuth;
@@ -40,11 +41,16 @@ Route::prefix('v1')->group(function () {
 
     // Rutas de autenticación JWT
     Route::group(['prefix' => 'auth'], function () {
+        // Rutas públicas (sin autenticación)
         Route::post('/login', [AuthController::class, 'login']);
         Route::post('/register', [AuthController::class, 'register']);
-        Route::post('/logout', [AuthController::class, 'logout']);
-        Route::post('/refresh', [AuthController::class, 'refresh']);
-        Route::get('/user-profile', [AuthController::class, 'userProfile']);
+        
+        // Rutas protegidas (requieren autenticación)
+        Route::middleware('auth:api')->group(function () {
+            Route::post('/logout', [AuthController::class, 'logout']);
+            Route::post('/refresh', [AuthController::class, 'refresh']);
+            Route::get('/user-profile', [AuthController::class, 'userProfile']);
+        });
     });
     
     // Ruta de prueba simple
@@ -165,5 +171,13 @@ Route::prefix('v1')->group(function () {
             Route::get('/mfa-status', [AuthMFAController::class, 'checkMFAStatus']);
         });
     });
-    
+});
+
+// ========================================================
+// TODO List con RBAC y Zero-Trust
+// ========================================================
+Route::middleware('auth:api')->group(function () {
+    // Rutas de TODO List - Requieren autenticación JWT
+    // RBAC: admin, user, guest pueden acceder
+    Route::apiResource('todos', TodoController::class)->middleware('role:admin,user,guest');
 });

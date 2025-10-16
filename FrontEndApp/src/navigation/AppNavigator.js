@@ -11,6 +11,7 @@ import {
   MFAVerificationScreen,
   MfaSettingsScreen
 } from '../screens';
+import GDPRSettingsScreen from '../screens/GDPRSettingsScreen';
 import { ToastProvider } from '../context/ToastContext';
 import SecurityInitializer from '../components/SecurityInitializer';
 import store from '../context/store';
@@ -88,6 +89,20 @@ const AppNavigator = () => {
             options={{
               title: 'TODO List',
               headerShown: false,
+            }}
+          />
+          <Stack.Screen 
+            name="GDPRSettings" 
+            component={GDPRSettingsScreen}
+            options={{
+              title: 'Protección de Datos',
+              headerStyle: {
+                backgroundColor: '#6366f1',
+              },
+              headerTintColor: COLORS.white,
+              headerTitleStyle: {
+                fontWeight: 'bold',
+              },
             }}
           />
         </Stack.Navigator>

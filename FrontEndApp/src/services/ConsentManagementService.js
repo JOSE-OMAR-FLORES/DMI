@@ -444,6 +444,52 @@ class ConsentManagementService {
       currentVersion: this.CURRENT_CONSENT_VERSION
     };
   }
+
+  /**
+   * Obtiene consentimientos en formato simple {purpose: boolean}
+   */
+  async getConsents(userId) {
+    try {
+      const status = await this.getConsentStatus(userId);
+      const consents = {};
+      
+      Object.entries(status.purposes).forEach(([purposeId, consent]) => {
+        consents[purposeId] = consent.granted;
+      });
+      
+      return consents;
+    } catch (error) {
+      console.error('❌ Error obteniendo consentimientos:', error);
+      return this.getDefaultConsents();
+    }
+  }
+
+  /**
+   * Consentimientos por defecto en formato simple
+   */
+  getDefaultConsents() {
+    const consents = {};
+    Object.values(this.CONSENT_PURPOSES).forEach(purpose => {
+      consents[purpose.id] = purpose.required;
+    });
+    return consents;
+  }
+
+  /**
+   * Obtiene el estado de CCPA opt-out
+   */
+  async getCCPAOptOutStatus(userId) {
+    try {
+      const ccpaData = await SecureStore.getItemAsync(`ccpa_do_not_sell_${userId}`);
+      if (!ccpaData) return false;
+      
+      const data = JSON.parse(ccpaData);
+      return data.requested && data.status === 'active';
+    } catch (error) {
+      console.error('❌ Error obteniendo estado CCPA:', error);
+      return false;
+    }
+  }
 }
 
 export default new ConsentManagementService();

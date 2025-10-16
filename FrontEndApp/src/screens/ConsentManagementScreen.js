@@ -174,9 +174,12 @@ export default function ConsentManagementScreen({ navigation }) {
 
       const report = await ConsentManagementService.generateConsentReport(user.id);
 
+      const consentsCount = report.currentConsents ? Object.keys(report.currentConsents).length : 0;
+      const historyCount = report.history ? report.history.length : 0;
+
       Alert.alert(
         '📊 Reporte Generado',
-        `Total de consentimientos: ${report.consents.length}\nHistorial de cambios: ${report.history.length}`,
+        `Total de consentimientos: ${consentsCount}\nHistorial de cambios: ${historyCount}`,
         [
           { text: 'OK' }
         ]

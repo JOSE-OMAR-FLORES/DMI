@@ -1,0 +1,47 @@
+config:
+  target: "http://localhost:8000/api/v1"
+  phases:
+    - duration: 120
+      arrivalRate: 10
+scenarios:
+  - name: "User Registers, Creates a Todo, and Logs Out"
+    flow:
+      # 1. Registrar un nuevo usuario
+      - post:
+          url: "/auth/register"
+          json:
+            name: "FlowUser {{ $randomString }}"
+            email: "flowuser{{ $randomString }}@example.com"
+            password: "password123"
+            password_confirmation: "password123"
+
+      # 2. Iniciar sesión con ese usuario
+      - post:
+          url: "/auth/login"
+          json:
+            email: "flowuser{{ $randomString }}@example.com"
+            password: "password123"
+          capture:
+            - json: "$.access_token"
+              as: "token"
+
+      # 3. Crear una nueva tarea (usando el token de autenticación)
+      - post:
+          url: "/todos"
+          headers:
+            Authorization: "Bearer {{ token }}"
+          json:
+            title: "Mi nueva tarea"
+            description: "Esta es una descripción de prueba."
+
+      # 4. Obtener la lista de tareas
+      - get:
+          url: "/todos"
+          headers:
+            Authorization: "Bearer {{ token }}"
+
+      # 5. Cerrar sesión
+      - post:
+          url: "/auth/logout"
+          headers:
+            Authorization: "Bearer {{ token }}"

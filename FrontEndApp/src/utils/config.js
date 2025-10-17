@@ -12,7 +12,7 @@ import {
 export const API_CONFIGS = {
   // Backend Laravel API Configuration
   BACKEND: {
-    BASE_URL: API_BASE_URL || 'http://192.168.1.73:8000/api/v1',
+    BASE_URL: API_BASE_URL || 'http://192.168.1.66:8000/api/v1',
     TIMEOUT: parseInt(API_TIMEOUT) || 15000, // 15 segundos
   },
   
